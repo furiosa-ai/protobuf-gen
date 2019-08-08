@@ -1,0 +1,18 @@
+[package]
+name = "protobuf-gen"
+version = "0.1.0"
+authors = ["Boncheol Gu <boncheol.gu@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+derive-new = "0.5"
+inner = "0.1"
+pb-rs = "0.6"
+protobuf-gen-derive = { path = "protobuf-gen-derive" }
+heck = "0.3"
+lazy_static = "1.3"
+syn = { version = "0.15", features = ["full"] }
+syn_util = "0.3"
+
+[dev-dependencies]
+failure = "0.1"
