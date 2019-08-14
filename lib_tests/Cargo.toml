@@ -1,0 +1,20 @@
+[package]
+name = "lib_tests"
+version = "0.1.0"
+authors = ["Boncheol Gu <boncheol.gu@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+bytes = "0.4"
+failure = "0.1"
+proptest = "0.9"
+proptest-derive = "0.1.1"
+prost = "0.5"
+protobuf-gen = { path = ".." }
+
+[build-dependencies]
+failure = "0.1"
+protobuf-gen = { path = ".." }
+
+[dev-dependencies]
+proptest = "0.9"
