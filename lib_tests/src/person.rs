@@ -3,6 +3,11 @@ use std::convert::{TryFrom, TryInto};
 use failure::{Error, Fallible};
 use protobuf_gen::ProtobufGen;
 
+use crate::city::City;
+
+#[derive(Debug, Clone, ProtobufGen, Arbitrary, PartialEq)]
+pub struct Dummy {}
+
 #[derive(Debug, Clone, ProtobufGen, Arbitrary, PartialEq)]
 pub struct Designer {
     pub id: i32,
@@ -75,6 +80,7 @@ pub struct Person {
     pub number: NumberBuffer,
     pub hobbies: Vec<u32>,
     pub job: Job,
+    pub city: City,
     pub area_code: AreaCode,
 }
 
@@ -91,9 +97,13 @@ impl TryFrom<proxy::Person> for Person {
             hobbies: other.hobbies.try_into()?,
             job: other
                 .job
-                .ok_or_else(|| format_err!("empty job field"))?
+                .ok_or_else(|| format_err!("empty {} field", stringify!(Person::job)))?
                 .try_into()?,
             area_code: other.area_code.try_into()?,
+            city: other
+                .city
+                .ok_or_else(|| format_err!("empty city field"))?
+                .try_into()?,
         })
     }
 }

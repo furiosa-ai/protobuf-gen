@@ -1,9 +1,15 @@
+#![recursion_limit = "128"]
+
+#[macro_use]
+extern crate log;
+extern crate proc_macro2;
 #[allow(unused_imports)]
 #[macro_use]
 extern crate protobuf_gen_derive;
 #[macro_use]
-extern crate log;
+extern crate quote;
 
+pub mod convert;
 pub mod extract;
 pub mod parse;
 pub mod print;
@@ -89,6 +95,7 @@ impl Config {
     pub fn generate(&self) -> Fallible<()> {
         let mut in_files = Vec::new();
 
+        let mut file = File::create("conversion")?;
         // generate protobuf schemas from Rust
         for (package, sources) in &self.sources {
             let mut context = self.build_context()?;
@@ -106,6 +113,11 @@ impl Config {
                 );
 
                 schema_file.merge(&mut parse::build_schema_file(&context, &syn_file));
+            }
+
+            for source in sources {
+                let syn_file: syn::File = syn::parse_str(&fs::read_to_string(source)?).unwrap();
+                convert::generate_conversion_apis(&schema_file, &syn_file, &mut file)?;
             }
 
             let (mut file, file_path) = self.create_proto_file(package)?;

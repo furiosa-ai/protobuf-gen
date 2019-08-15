@@ -5,8 +5,30 @@ use failure::{Error, Fallible};
 use prost::Message;
 use protobuf_gen::ProtobufGen;
 
+use crate::city::City;
 use crate::person::{AreaCode, Designer, Job, Person};
 use crate::proxy;
+
+impl TryFrom<City> for proxy::City {
+    type Error = Error;
+
+    fn try_from(City { name, .. }: City) -> Fallible<Self> {
+        Ok(Self {
+            name: name.try_into()?,
+        })
+    }
+}
+
+impl TryFrom<proxy::City> for City {
+    type Error = Error;
+
+    fn try_from(other: proxy::City) -> Fallible<Self> {
+        Ok(City {
+            name: other.name.try_into()?,
+            ..Default::default()
+        })
+    }
+}
 
 impl TryFrom<Designer> for proxy::Designer {
     type Error = Error;
@@ -50,8 +72,8 @@ impl ProtobufGen for Designer {
 impl TryFrom<proxy::job::NoneInner> for Job {
     type Error = Error;
 
-    fn try_from(_: proxy::job::NoneInner) -> Fallible<Self> {
-        Ok(Job::None)
+    fn try_from(proxy::job::NoneInner { .. }: proxy::job::NoneInner) -> Fallible<Self> {
+        Ok(Job::None {})
     }
 }
 
@@ -79,7 +101,7 @@ impl TryFrom<Job> for proxy::Job {
 
     fn try_from(this: Job) -> Fallible<Self> {
         Ok(match this {
-            Job::None => proxy::Job {
+            Job::None {} => proxy::Job {
                 inner: Some(proxy::job::Inner::None(proxy::job::NoneInner {})),
             },
             Job::Programmer { skill, grade } => proxy::Job {
@@ -148,20 +170,6 @@ impl TryFrom<proxy::AreaCode> for AreaCode {
     }
 }
 
-impl TryFrom<Person> for proxy::Person {
-    type Error = Error;
-
-    fn try_from(this: Person) -> Fallible<Self> {
-        Ok(Self {
-            id: this.id.try_into()?,
-            number: this.number.try_into()?,
-            hobbies: this.hobbies.try_into()?,
-            job: Some(this.job.try_into()?),
-            area_code: this.area_code.try_into()?,
-        })
-    }
-}
-
 impl ProtobufGen for AreaCode {
     fn to_protobuf<W: Write>(self, w: &mut W) -> Fallible<()> {
         let proxy: proxy::AreaCode = self.try_into()?;
@@ -181,6 +189,21 @@ impl ProtobufGen for AreaCode {
     }
 }
 
+impl TryFrom<Person> for proxy::Person {
+    type Error = Error;
+
+    fn try_from(this: Person) -> Fallible<Self> {
+        Ok(Self {
+            id: this.id.try_into()?,
+            number: this.number.try_into()?,
+            hobbies: this.hobbies.try_into()?,
+            job: Some(this.job.try_into()?),
+            area_code: this.area_code.try_into()?,
+            city: Some(this.city.try_into()?),
+        })
+    }
+}
+
 // impl TryFrom<proxy::Person> for Person {
 //     type Error = Error;
 
@@ -193,6 +216,10 @@ impl ProtobufGen for AreaCode {
 //             job: other
 //                 .job
 //                 .ok_or_else(|| format_err!("empty job field"))?
+//                 .try_into()?,
+//             city: other
+//                 .city
+//                 .ok_or_else(|| format_err!("empty city field"))?
 //                 .try_into()?,
 //             area_code: other.area_code.try_into()?,
 //         })

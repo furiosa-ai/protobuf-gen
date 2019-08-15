@@ -1,6 +1,6 @@
 use protobuf_gen::ProtobufGen;
 
-#[derive(Debug, ProtobufGen, Arbitrary, PartialEq)]
+#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq)]
 pub struct City {
     pub name: String,
 }
