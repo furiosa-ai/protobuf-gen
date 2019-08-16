@@ -106,11 +106,11 @@ impl Extract for ConversionGenerator {
         let proxy = &self.proxy_mod;
 
         self.token_stream.extend(quote! {
-            impl ::std::convert::TryFrom<#ident> for #proxy::#ident {
+            impl ::std::convert::TryInto<#proxy::#ident> for #ident {
                 type Error = ::failure::Error;
 
-                fn try_from(_: #ident) -> ::failure::Fallible<Self> {
-                    Ok(Self {})
+                fn try_into(self) -> ::failure::Fallible<#proxy::#ident> {
+                    Ok(#proxy::#ident {})
                 }
             }
 
@@ -305,13 +305,22 @@ impl Extract for ConversionGenerator {
         });
 
         self.token_stream.extend(quote! {
-            impl ::std::convert::TryFrom<#ident> for #proxy::#ident {
+            impl ::std::convert::TryInto<#proxy::#ident> for #ident {
                 type Error = ::failure::Error;
 
-                fn try_from(other: #ident) -> ::failure::Fallible<Self> {
-                    Ok(match other {
+                fn try_into(self) -> ::failure::Fallible<#proxy::#ident> {
+                    Ok(match self {
                         #(#cases)*
                     })
+                }
+            }
+
+            impl ::std::convert::TryInto<i32> for #ident {
+                type Error = ::failure::Error;
+
+                fn try_into(self) -> ::failure::Fallible<i32> {
+                    let proxy: #proxy::#ident = self.try_into()?;
+                    Ok(proxy.into())
                 }
             }
         });
@@ -329,6 +338,16 @@ impl Extract for ConversionGenerator {
                     Ok(match other {
                         #(#cases)*
                     })
+                }
+            }
+
+            impl ::std::convert::TryFrom<i32> for #ident {
+                type Error = ::failure::Error;
+
+                fn try_from(n: i32) -> ::failure::Fallible<Self> {
+                    let proxy = #proxy::#ident::from_i32(n)
+                        .ok_or_else(|| format_err!("invalid \"{}\"", stringify!(#proxy::#ident)))?;
+                    proxy.try_into()
                 }
             }
         });
