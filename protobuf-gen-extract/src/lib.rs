@@ -1,5 +1,6 @@
 use syn::{
-    Fields, FieldsNamed, File, Item, ItemEnum, ItemStruct, Meta, MetaList, NestedMeta, Variant,
+    Field, Fields, FieldsNamed, File, Item, ItemEnum, ItemStruct, Meta, MetaList, NestedMeta,
+    Variant,
 };
 
 pub trait Extract {
@@ -14,6 +15,8 @@ pub trait Extract {
         _: &FieldsNamed,
     ) {
     }
+
+    fn extract_nested_message_with_field_unnamed(&mut self, _: &ItemEnum, _: &Variant, _: &Field) {}
 
     fn extract_nested_message_with_fields_unit(&mut self, _: &ItemEnum, _: &Variant) {}
 
@@ -35,6 +38,8 @@ pub fn extract_nested_message<T: Extract + ?Sized>(
                 "enum should have at most one unnamed variant. {:?}",
                 item_enum
             );
+            let field = fields_unnamed.unnamed.first().unwrap().into_value();
+            e.extract_nested_message_with_field_unnamed(item_enum, variant, field);
         }
         Fields::Named(fields_named) => {
             e.extract_nested_message_with_fields_named(item_enum, variant, fields_named);

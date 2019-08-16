@@ -1,17 +1,9 @@
 [package]
-name = "protobuf-gen-derive"
+name = "protobuf-gen-extract"
 version = "0.1.0"
 authors = ["Boncheol Gu <boncheol.gu@gmail.com>"]
 edition = "2018"
 
-[lib]
-proc-macro = true
-
 [dependencies]
-heck = "0.3"
-pb-rs = "0.8"
-proc-macro2 = "0.4"
-protobuf-gen-extract = { path = "../protobuf-gen-extract" }
-quote = "0.6"
 syn = { version = "0.15", features = ["full"] }
 syn_util = "0.3"

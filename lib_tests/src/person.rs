@@ -8,7 +8,7 @@ use crate::city::City;
 #[derive(Debug, Clone, ProtobufGen, Arbitrary, PartialEq)]
 pub struct Dummy {}
 
-#[derive(Debug, Clone, ProtobufGen, Arbitrary, PartialEq)]
+#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq)]
 pub struct Designer {
     pub id: i32,
     pub name: String,
@@ -19,6 +19,12 @@ pub enum Job {
     None,
     Programmer { skill: String, grade: u8 },
     Designer(Designer),
+}
+
+impl Default for Job {
+    fn default() -> Self {
+        Job::None
+    }
 }
 
 #[derive(Debug, Clone, ProtobufGen, Arbitrary, PartialEq)]
@@ -53,7 +59,7 @@ impl TryFrom<i32> for AreaCode {
     }
 }
 
-#[derive(Debug, Clone, Arbitrary, PartialEq)]
+#[derive(Debug, Default, Clone, Arbitrary, PartialEq)]
 pub struct NumberBuffer(Vec<u8>);
 
 impl TryInto<Vec<u8>> for NumberBuffer {
@@ -74,7 +80,7 @@ impl TryFrom<Vec<u8>> for NumberBuffer {
 
 #[derive(Debug, Clone, ProtobufGen, Arbitrary, PartialEq)]
 pub struct Person {
-    _inner: i32,
+    pub(crate) _inner: i32,
     pub id: u8,
     #[protobuf_gen(substitute = "bytes")]
     pub number: NumberBuffer,
@@ -82,28 +88,4 @@ pub struct Person {
     pub job: Job,
     pub city: City,
     pub area_code: AreaCode,
-}
-
-use crate::proxy;
-
-impl TryFrom<proxy::Person> for Person {
-    type Error = Error;
-
-    fn try_from(other: proxy::Person) -> Fallible<Self> {
-        Ok(Person {
-            _inner: Default::default(),
-            id: other.id.try_into()?,
-            number: other.number.try_into()?,
-            hobbies: other.hobbies.try_into()?,
-            job: other
-                .job
-                .ok_or_else(|| format_err!("empty {} field", stringify!(Person::job)))?
-                .try_into()?,
-            area_code: other.area_code.try_into()?,
-            city: other
-                .city
-                .ok_or_else(|| format_err!("empty city field"))?
-                .try_into()?,
-        })
-    }
 }

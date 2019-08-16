@@ -6,11 +6,11 @@ extern crate proc_macro2;
 #[allow(unused_imports)]
 #[macro_use]
 extern crate protobuf_gen_derive;
+extern crate protobuf_gen_extract as extract;
 #[macro_use]
 extern crate quote;
 
 pub mod convert;
-pub mod extract;
 pub mod parse;
 pub mod print;
 
@@ -21,7 +21,9 @@ use std::path::{Path, PathBuf};
 
 use failure::Fallible;
 use pb_rs::types::FieldType;
+use proc_macro2::TokenStream;
 
+use crate::convert::ConversionGenerator;
 use crate::parse::SchemaFile;
 use crate::print::SchemaPrinter;
 pub use protobuf_gen_derive::*;
@@ -93,9 +95,16 @@ impl Config {
     }
 
     pub fn generate(&self) -> Fallible<()> {
+        fn generate_conversion_apis<W: Write>(file: &syn::File, w: &mut W) -> io::Result<()> {
+            let mut builder = ConversionGenerator {
+                token_stream: TokenStream::default(),
+            };
+            extract::extract_from_file(&mut builder, file);
+            write!(w, "{}", builder.token_stream)
+        }
+
         let mut in_files = Vec::new();
 
-        let mut file = File::create("conversion")?;
         // generate protobuf schemas from Rust
         for (package, sources) in &self.sources {
             let mut context = self.build_context()?;
@@ -112,12 +121,9 @@ impl Config {
                         .map(|s| Path::new(&s.replace(".", "/")).with_extension("proto")),
                 );
 
+                let mut file = File::create(format!("{}.conv", source.display()))?;
+                generate_conversion_apis(&syn_file, &mut file)?;
                 schema_file.merge(&mut parse::build_schema_file(&context, &syn_file));
-            }
-
-            for source in sources {
-                let syn_file: syn::File = syn::parse_str(&fs::read_to_string(source)?).unwrap();
-                convert::generate_conversion_apis(&schema_file, &syn_file, &mut file)?;
             }
 
             let (mut file, file_path) = self.create_proto_file(package)?;
