@@ -95,14 +95,6 @@ impl Config {
     }
 
     pub fn generate(&self) -> Fallible<()> {
-        fn generate_conversion_apis<W: Write>(file: &syn::File, w: &mut W) -> io::Result<()> {
-            let mut builder = ConversionGenerator {
-                token_stream: TokenStream::default(),
-            };
-            extract::extract_from_file(&mut builder, file);
-            write!(w, "{}", builder.token_stream)
-        }
-
         let mut in_files = Vec::new();
 
         // generate protobuf schemas from Rust
@@ -122,7 +114,17 @@ impl Config {
                 );
 
                 let mut file = File::create(format!("{}.conv", source.display()))?;
-                generate_conversion_apis(&syn_file, &mut file)?;
+                // generate_conversion_apis(&syn_file, &mut file)?;
+                let mut builder = ConversionGenerator {
+                    token_stream: TokenStream::default(),
+                    proxy_mod: syn::parse_str(
+                        &self.proxy_target_dir.as_ref().unwrap().to_string_lossy(),
+                    )
+                    .unwrap(),
+                };
+                extract::extract_from_file(&mut builder, &syn_file);
+                write!(file, "{}", builder.token_stream)?;
+
                 schema_file.merge(&mut parse::build_schema_file(&context, &syn_file));
             }
 

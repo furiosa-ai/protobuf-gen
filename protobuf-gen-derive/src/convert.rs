@@ -3,12 +3,13 @@ use std::collections::HashSet;
 use heck::SnakeCase;
 use proc_macro2::TokenStream;
 use quote::ToTokens;
-use syn::{self, Field, Fields, FieldsNamed, Ident, ItemEnum, ItemStruct, Variant};
+use syn::{self, Field, Fields, FieldsNamed, Ident, ItemEnum, ItemStruct, TypePath, Variant};
 
 use extract::Extract;
 
 pub(crate) struct ConversionGenerator {
     pub(crate) token_stream: TokenStream,
+    pub(crate) proxy_mod: TypePath,
 }
 
 impl Extract for ConversionGenerator {
@@ -18,7 +19,7 @@ impl Extract for ConversionGenerator {
         fields_named: &FieldsNamed,
     ) {
         let ident = &item_struct.ident;
-        let proxy = quote!(proxy);
+        let proxy = &self.proxy_mod;
 
         let (ref bindings, ref assignments) = self.generate_assignments(fields_named);
 
@@ -97,12 +98,12 @@ impl Extract for ConversionGenerator {
             }
         });
 
-        self.add_derive_protobuf_gen(ident, proxy);
+        self.add_derive_protobuf_gen(ident);
     }
 
     fn extract_message_with_fields_unit(&mut self, item_struct: &ItemStruct) {
         let ident = &item_struct.ident;
-        let proxy = quote!(proxy);
+        let proxy = &self.proxy_mod;
 
         self.token_stream.extend(quote! {
             impl ::std::convert::TryFrom<#ident> for #proxy::#ident {
@@ -122,7 +123,7 @@ impl Extract for ConversionGenerator {
             }
         });
 
-        self.add_derive_protobuf_gen(ident, proxy);
+        self.add_derive_protobuf_gen(ident);
     }
 
     fn extract_nested_message_with_fields_named(
@@ -132,7 +133,7 @@ impl Extract for ConversionGenerator {
         fields_named: &FieldsNamed,
     ) {
         let ident = &item_enum.ident;
-        let proxy = quote!(proxy);
+        let proxy = &self.proxy_mod;
         let inner_mod: Ident = syn::parse_str(&ident.to_string().to_snake_case()).unwrap();
         let variant = &variant.ident;
         let variant_inner: Ident = syn::parse_str(&format!("{}Inner", variant)).unwrap();
@@ -161,7 +162,7 @@ impl Extract for ConversionGenerator {
         _: &Field,
     ) {
         let ident = &item_enum.ident;
-        let proxy = quote!(proxy);
+        let proxy = &self.proxy_mod;
         let variant = &variant.ident;
 
         self.token_stream.extend(quote! {
@@ -179,7 +180,7 @@ impl Extract for ConversionGenerator {
 
     fn extract_nested_message_with_fields_unit(&mut self, item_enum: &ItemEnum, variant: &Variant) {
         let ident = &item_enum.ident;
-        let proxy = quote!(proxy);
+        let proxy = &self.proxy_mod;
         let inner_mod: Ident = syn::parse_str(&ident.to_string().to_snake_case()).unwrap();
         let variant = &variant.ident;
         let variant_inner: Ident = syn::parse_str(&format!("{}Inner", variant)).unwrap();
@@ -197,7 +198,7 @@ impl Extract for ConversionGenerator {
 
     fn extract_one_of(&mut self, item_enum: &ItemEnum) {
         let ident = &item_enum.ident;
-        let proxy = quote!(proxy);
+        let proxy = &self.proxy_mod;
         let inner_mod: Ident = syn::parse_str(&ident.to_string().to_snake_case()).unwrap();
 
         let ref cases = item_enum.variants.iter().map(|v| {
@@ -206,7 +207,7 @@ impl Extract for ConversionGenerator {
             match &v.fields {
                 Fields::Unit => quote!{
                     #ident::#variant {} => #proxy::#ident {
-                        inner: Some(#proxy::#inner_mod::Inner::#variant(proxy::job::#variant_inner {})),
+                        inner: Some(#proxy::#inner_mod::Inner::#variant(#proxy::#inner_mod::#variant_inner {})),
                     },
                 },
                 Fields::Named(fields_named) => {
@@ -291,12 +292,12 @@ impl Extract for ConversionGenerator {
             }
         });
 
-        self.add_derive_protobuf_gen(ident, proxy);
+        self.add_derive_protobuf_gen(ident);
     }
 
     fn extract_enumerator(&mut self, item_enum: &ItemEnum) {
         let ident = &item_enum.ident;
-        let proxy = quote!(proxy);
+        let proxy = &self.proxy_mod;
 
         let cases = item_enum.variants.iter().map(|v| {
             let variant = &v.ident;
@@ -361,11 +362,12 @@ impl Extract for ConversionGenerator {
 }
 
 impl ConversionGenerator {
-    fn add_derive_protobuf_gen<T, U>(&mut self, ident: T, proxy: U)
+    fn add_derive_protobuf_gen<T>(&mut self, ident: T)
     where
         T: ToTokens,
-        U: ToTokens,
     {
+        let proxy = &self.proxy_mod;
+
         self.token_stream.extend(quote! {
             impl ProtobufGen for #ident {
                 fn to_protobuf<W: ::std::io::Write>(self, w: &mut W) -> ::failure::Fallible<()> {
