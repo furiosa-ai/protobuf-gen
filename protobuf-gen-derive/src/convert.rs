@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use heck::SnakeCase;
 use proc_macro2::TokenStream;
 use quote::ToTokens;
-use syn::{self, Field, Fields, FieldsNamed, Ident, ItemEnum, ItemStruct, TypePath, Variant};
+use syn::{self, Field, Fields, FieldsNamed, Ident, ItemEnum, ItemStruct, Type, TypePath, Variant};
 
 use extract::Extract;
 
@@ -411,6 +411,15 @@ impl ConversionGenerator {
             .iter()
             .map(|x| {
                 let field = x.ident.as_ref().unwrap();
+                if let Type::Path(type_path) = &x.ty {
+                    let type_ident = &type_path.path.segments.last().unwrap().value().ident;
+                    if type_ident == "Vec" || type_ident == "HashSet" {
+                        return quote!(#field : #field.into_iter().map(|x| Ok(x.try_into()?)).collect::<Fallible<_>>()?,);
+                    }
+                    else if type_ident == "HashMap" {
+                        return quote!(#field : #field.into_iter().map(|(k, v)| Ok((k.try_into()?, v.try_into()?))).collect::<Fallible<_>>()?,);
+                    }
+                }
                 quote!(#field : #field.try_into()?,)
             })
             .collect();
