@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::ops::{Deref, DerefMut};
+use std::path::PathBuf;
 
 use pb_rs::types::{
     Enumerator, Field, FieldType, FileDescriptor, Frequency, Message, OneOf, Syntax,
@@ -332,6 +333,11 @@ impl Default for SchemaFile {
 }
 
 impl SchemaFile {
+    pub fn add_import_paths<T: IntoIterator<Item = PathBuf>>(&mut self, paths: T) {
+        self.import_paths.extend(paths.into_iter());
+        self.import_paths.dedup();
+    }
+
     pub fn merge(&mut self, other: &mut SchemaFile) {
         self.0.import_paths.append(&mut other.0.import_paths);
         self.0.enums.append(&mut other.0.enums);

@@ -107,7 +107,7 @@ impl Config {
                 debug!("processing {} in {}", source.display(), package);
                 let syn_file: syn::File = syn::parse_str(&fs::read_to_string(source)?).unwrap();
 
-                schema_file.import_paths.extend(
+                schema_file.add_import_paths(
                     parse::collect_required_imports(&context, &syn_file)
                         .into_iter()
                         .map(|s| Path::new(&s.replace(".", "/")).with_extension("proto")),
