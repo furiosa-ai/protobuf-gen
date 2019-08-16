@@ -4,7 +4,6 @@ extern crate proptest_derive;
 extern crate failure;
 
 pub mod city;
-pub mod convert;
 pub mod person;
 
 pub mod proxy {

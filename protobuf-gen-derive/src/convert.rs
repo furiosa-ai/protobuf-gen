@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use heck::SnakeCase;
 use proc_macro2::TokenStream;
 use quote::ToTokens;
-use syn::{self, Field, Fields, FieldsNamed, Ident, ItemEnum, ItemStruct, Type, TypePath, Variant};
+use syn::{self, Fields, FieldsNamed, Ident, ItemEnum, ItemStruct, Type, TypePath, Variant};
 
 use extract::Extract;
 
@@ -101,31 +101,6 @@ impl Extract for ConversionGenerator {
         self.add_derive_protobuf_gen(ident);
     }
 
-    fn extract_message_with_fields_unit(&mut self, item_struct: &ItemStruct) {
-        let ident = &item_struct.ident;
-        let proxy = &self.proxy_mod;
-
-        self.token_stream.extend(quote! {
-            impl ::std::convert::TryInto<#proxy::#ident> for #ident {
-                type Error = ::failure::Error;
-
-                fn try_into(self) -> ::failure::Fallible<#proxy::#ident> {
-                    Ok(#proxy::#ident {})
-                }
-            }
-
-            impl ::std::convert::TryFrom<#proxy::#ident> for #ident {
-                type Error = ::failure::Error;
-
-                fn try_from(_: #proxy::#ident) -> ::failure::Fallible<Self> {
-                    Ok(Self {})
-                }
-            }
-        });
-
-        self.add_derive_protobuf_gen(ident);
-    }
-
     fn extract_nested_message_with_fields_named(
         &mut self,
         item_enum: &ItemEnum,
@@ -150,29 +125,6 @@ impl Extract for ConversionGenerator {
                     Ok(#ident::#variant {
                         #(#assignments)*
                     })
-                }
-            }
-        });
-    }
-
-    fn extract_nested_message_with_field_unnamed(
-        &mut self,
-        item_enum: &ItemEnum,
-        variant: &Variant,
-        _: &Field,
-    ) {
-        let ident = &item_enum.ident;
-        let proxy = &self.proxy_mod;
-        let variant = &variant.ident;
-
-        self.token_stream.extend(quote! {
-            impl ::std::convert::TryFrom<#proxy::#variant> for #ident {
-                type Error = ::failure::Error;
-
-                fn try_from(other: #proxy::#variant) -> ::failure::Fallible<Self> {
-                    use std::convert::TryInto;
-
-                    Ok(#ident::#variant(other.try_into()?))
                 }
             }
         });

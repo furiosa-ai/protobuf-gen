@@ -6,19 +6,24 @@ use protobuf_gen::ProtobufGen;
 use crate::city::City;
 
 #[derive(Debug, Clone, ProtobufGen, Arbitrary, PartialEq)]
-pub struct Dummy {}
+#[protobuf_gen(proxy_mod = "crate::proxy")]
+pub struct Dummy {
+    pub id: u32,
+}
 
 #[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq)]
+#[protobuf_gen(proxy_mod = "crate::proxy")]
 pub struct Designer {
     pub id: i32,
     pub name: String,
 }
 
 #[derive(Debug, Clone, ProtobufGen, Arbitrary, PartialEq)]
+#[protobuf_gen(proxy_mod = "crate::proxy")]
 pub enum Job {
     None,
     Programmer { skill: String, grade: u8 },
-    Designer(Designer),
+    Designer { designer: Designer },
 }
 
 impl Default for Job {
@@ -28,35 +33,11 @@ impl Default for Job {
 }
 
 #[derive(Debug, Clone, ProtobufGen, Arbitrary, PartialEq)]
+#[protobuf_gen(proxy_mod = "crate::proxy")]
 pub enum AreaCode {
     Seoul,
     Seongnam,
     Jinhae,
-}
-
-impl TryInto<i32> for AreaCode {
-    type Error = Error;
-
-    fn try_into(self) -> Fallible<i32> {
-        Ok(match self {
-            AreaCode::Seoul => 0,
-            AreaCode::Seongnam => 1,
-            AreaCode::Jinhae => 2,
-        })
-    }
-}
-
-impl TryFrom<i32> for AreaCode {
-    type Error = Error;
-
-    fn try_from(n: i32) -> Fallible<Self> {
-        Ok(match n {
-            0 => AreaCode::Seoul,
-            1 => AreaCode::Seongnam,
-            2 => AreaCode::Jinhae,
-            _ => bail!("invalid discriminant"),
-        })
-    }
 }
 
 #[derive(Debug, Default, Clone, Arbitrary, PartialEq)]
@@ -79,6 +60,7 @@ impl TryFrom<Vec<u8>> for NumberBuffer {
 }
 
 #[derive(Debug, Clone, ProtobufGen, Arbitrary, PartialEq)]
+#[protobuf_gen(proxy_mod = "crate::proxy")]
 pub struct Person {
     pub(crate) _inner: i32,
     pub id: u8,

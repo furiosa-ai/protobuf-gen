@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use std::ops::{Deref, DerefMut};
-use std::path::PathBuf;
+use std::path::Path;
 
 use pb_rs::types::{
     Enumerator, Field, FieldType, FileDescriptor, Frequency, Message, OneOf, Syntax,
@@ -88,13 +88,6 @@ impl<'a> Extract for SchemaFileBuilder<'a> {
         self.add_message(Message {
             name: item_struct.ident.to_string(),
             fields,
-            ..Message::default()
-        });
-    }
-
-    fn extract_message_with_fields_unit(&mut self, item_struct: &ItemStruct) {
-        self.add_message(Message {
-            name: item_struct.ident.to_string(),
             ..Message::default()
         });
     }
@@ -299,11 +292,21 @@ impl<'a> SchemaFileBuilder<'a> {
 }
 
 pub fn build_schema_file<'a>(context: &'a Context, file: &File) -> SchemaFile {
+    let file_descriptor = FileDescriptor {
+        syntax: Syntax::Proto3,
+        import_paths: collect_required_imports(&context, &file)
+            .into_iter()
+            .map(|s| Path::new(&s.replace(".", "/")).with_extension("proto"))
+            .collect(),
+        ..Default::default()
+    };
+
     let mut builder = SchemaFileBuilder {
         context,
-        file_descriptor: Default::default(),
+        file_descriptor,
     };
     extract::extract_from_file(&mut builder, file);
+
     SchemaFile(builder.file_descriptor)
 }
 
@@ -327,19 +330,15 @@ impl Default for SchemaFile {
     fn default() -> Self {
         Self(FileDescriptor {
             syntax: Syntax::Proto3,
-            ..FileDescriptor::default()
+            ..Default::default()
         })
     }
 }
 
 impl SchemaFile {
-    pub fn add_import_paths<T: IntoIterator<Item = PathBuf>>(&mut self, paths: T) {
-        self.import_paths.extend(paths.into_iter());
-        self.import_paths.dedup();
-    }
-
     pub fn merge(&mut self, other: &mut SchemaFile) {
         self.0.import_paths.append(&mut other.0.import_paths);
+        self.0.import_paths.dedup();
         self.0.enums.append(&mut other.0.enums);
         self.0.messages.append(&mut other.0.messages);
     }

@@ -1,12 +1,9 @@
 use syn::{
-    Field, Fields, FieldsNamed, File, Item, ItemEnum, ItemStruct, Meta, MetaList, NestedMeta,
-    Variant,
+    Fields, FieldsNamed, File, Item, ItemEnum, ItemStruct, Meta, MetaList, NestedMeta, Variant,
 };
 
 pub trait Extract {
     fn extract_message_with_fields_named(&mut self, _: &ItemStruct, _: &FieldsNamed) {}
-
-    fn extract_message_with_fields_unit(&mut self, _: &ItemStruct) {}
 
     fn extract_nested_message_with_fields_named(
         &mut self,
@@ -15,8 +12,6 @@ pub trait Extract {
         _: &FieldsNamed,
     ) {
     }
-
-    fn extract_nested_message_with_field_unnamed(&mut self, _: &ItemEnum, _: &Variant, _: &Field) {}
 
     fn extract_nested_message_with_fields_unit(&mut self, _: &ItemEnum, _: &Variant) {}
 
@@ -31,21 +26,17 @@ pub fn extract_nested_message<T: Extract + ?Sized>(
     variant: &Variant,
 ) {
     match &variant.fields {
-        Fields::Unnamed(fields_unnamed) => {
-            assert_eq!(
-                fields_unnamed.unnamed.len(),
-                1,
-                "enum should have at most one unnamed variant. {:?}",
-                item_enum
-            );
-            let field = fields_unnamed.unnamed.first().unwrap().into_value();
-            e.extract_nested_message_with_field_unnamed(item_enum, variant, field);
-        }
         Fields::Named(fields_named) => {
             e.extract_nested_message_with_fields_named(item_enum, variant, fields_named);
         }
         Fields::Unit => {
             e.extract_nested_message_with_fields_unit(item_enum, variant);
+        }
+        _ => {
+            panic!(
+                "only unit and 'struct' with named fields can be converted to nested 'message': \"{:?}\"",
+                item_enum.ident
+            );
         }
     }
 }
@@ -59,29 +50,26 @@ pub fn extract_message<T: Extract + ?Sized>(e: &mut T, item_struct: &ItemStruct)
         }
     }
 
-    match &item_struct.fields {
-        syn::Fields::Named(fields_named) => {
-            let fields_named = FieldsNamed {
-                named: fields_named
-                    .named
-                    .iter()
-                    .cloned()
-                    .filter(filter_field)
-                    .collect(),
-                ..fields_named.clone()
-            };
+    if let syn::Fields::Named(fields_named) = &item_struct.fields {
+        let fields_named = FieldsNamed {
+            named: fields_named
+                .named
+                .iter()
+                .cloned()
+                .filter(filter_field)
+                .collect(),
+            ..fields_named.clone()
+        };
+        if fields_named.named.len() > 0 {
             e.extract_message_with_fields_named(item_struct, &fields_named);
-        }
-        syn::Fields::Unit => {
-            e.extract_message_with_fields_unit(item_struct);
-        }
-        syn::Fields::Unnamed(_) => {
-            panic!(
-                "only named or unit 'struct' can be converted to 'message'. {:?}",
-                item_struct
-            );
+            return;
         }
     }
+
+    panic!(
+        "only 'struct' with named fields can be converted to 'message': \"{:?}\"",
+        item_struct.ident
+    );
 }
 
 fn collect_items(file: &File) -> Vec<&Item> {

@@ -10,12 +10,10 @@ failure = "0.1"
 heck = "0.3"
 log = "0.4"
 pb-rs = "0.8"
-proc-macro2 = "0.4"
 prost = "0.5"
 prost-build = "0.5"
 protobuf-gen-derive = { path = "protobuf-gen-derive" }
 protobuf-gen-extract = { path = "protobuf-gen-extract" }
-quote = "0.6"
 syn = { version = "0.15", features = ["full"] }
 syn_util = "0.3"
 

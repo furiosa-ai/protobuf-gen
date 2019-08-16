@@ -1,29 +1,18 @@
-#![recursion_limit = "128"]
-
 #[macro_use]
 extern crate log;
-extern crate proc_macro2;
-#[allow(unused_imports)]
-#[macro_use]
-extern crate protobuf_gen_derive;
 extern crate protobuf_gen_extract as extract;
-#[macro_use]
-extern crate quote;
 
-pub mod convert;
 pub mod parse;
 pub mod print;
 
 use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use failure::Fallible;
 use pb_rs::types::FieldType;
-use proc_macro2::TokenStream;
 
-use crate::convert::ConversionGenerator;
 use crate::parse::SchemaFile;
 use crate::print::SchemaPrinter;
 pub use protobuf_gen_derive::*;
@@ -87,7 +76,7 @@ impl Config {
         // generate item dictionary
         for (package, sources) in &self.sources {
             for source in sources {
-                let file: syn::File = syn::parse_str(&fs::read_to_string(source)?).unwrap();
+                let file: syn::File = syn::parse_str(&fs::read_to_string(source)?)?;
                 context.item_dictionary.collect(&file.items, package);
             }
         }
@@ -96,35 +85,17 @@ impl Config {
 
     pub fn generate(&self) -> Fallible<()> {
         let mut in_files = Vec::new();
+        let mut context = self.build_context()?;
 
         // generate protobuf schemas from Rust
         for (package, sources) in &self.sources {
-            let mut context = self.build_context()?;
+            context.current_package = package.clone();
+
             let mut schema_file = SchemaFile::default();
             schema_file.package = package.clone();
-            context.current_package = package.clone();
             for source in sources {
                 debug!("processing {} in {}", source.display(), package);
-                let syn_file: syn::File = syn::parse_str(&fs::read_to_string(source)?).unwrap();
-
-                schema_file.add_import_paths(
-                    parse::collect_required_imports(&context, &syn_file)
-                        .into_iter()
-                        .map(|s| Path::new(&s.replace(".", "/")).with_extension("proto")),
-                );
-
-                let mut file = File::create(format!("{}.conv", source.display()))?;
-                // generate_conversion_apis(&syn_file, &mut file)?;
-                let mut builder = ConversionGenerator {
-                    token_stream: TokenStream::default(),
-                    proxy_mod: syn::parse_str(
-                        &self.proxy_target_dir.as_ref().unwrap().to_string_lossy(),
-                    )
-                    .unwrap(),
-                };
-                extract::extract_from_file(&mut builder, &syn_file);
-                write!(file, "{}", builder.token_stream)?;
-
+                let syn_file: syn::File = syn::parse_str(&fs::read_to_string(source)?)?;
                 schema_file.merge(&mut parse::build_schema_file(&context, &syn_file));
             }
 
@@ -140,9 +111,7 @@ impl Config {
 
             let mut config = prost_build::Config::new();
             config.out_dir(proxy_target_dir);
-            config
-                .compile_protos(&in_files, &[PathBuf::from(&self.proto_target_dir)])
-                .unwrap();
+            config.compile_protos(&in_files, &[PathBuf::from(&self.proto_target_dir)])?;
         }
         Ok(())
     }

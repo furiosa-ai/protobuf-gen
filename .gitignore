@@ -1,9 +1,13 @@
 /target
 **/*.rs.bk
 /Cargo.lock
-/lib_tests/Cargo.lock
-/lib_tests/target
 /lib_tests/protos
 /lib_tests/proxy
+/lib_tests/Cargo.lock
+/lib_tests/target
 /protobuf-gen-derive/Cargo.lock
-protobuf-gen-derive/target
+/protobuf-gen-derive/target
+/protobuf-gen-extract/Cargo.lock
+/protobuf-gen-extract/target
+protos/
+proxy/
