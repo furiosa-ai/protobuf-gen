@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::ops::{Deref, DerefMut};
 use std::path::Path;
 
-use pb_rs::types::{
+use crate::types::{
     Enumerator, Field, FieldType, FileDescriptor, Frequency, Message, OneOf, Syntax,
 };
 use syn::visit::{self, Visit};

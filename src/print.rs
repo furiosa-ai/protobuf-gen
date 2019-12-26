@@ -1,6 +1,6 @@
 use std::fmt;
 
-use pb_rs::types::{
+use crate::types::{
     Enumerator, Field, FieldType, FileDescriptor, Frequency, Message, OneOf, Syntax,
 };
 

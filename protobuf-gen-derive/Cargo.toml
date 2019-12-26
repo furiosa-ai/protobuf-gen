@@ -9,7 +9,6 @@ proc-macro = true
 
 [dependencies]
 heck = "0.3"
-pb-rs = "0.8"
 proc-macro2 = "0.4"
 protobuf-gen-extract = { path = "../protobuf-gen-extract" }
 quote = "0.6"

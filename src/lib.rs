@@ -4,6 +4,7 @@ extern crate protobuf_gen_extract as extract;
 
 pub mod parse;
 pub mod print;
+mod types;
 
 use std::collections::HashMap;
 use std::fs::{self, File};
@@ -11,10 +12,10 @@ use std::io::{self, Read, Write};
 use std::path::PathBuf;
 
 use failure::Fallible;
-use pb_rs::types::FieldType;
 
 use crate::parse::SchemaFile;
 use crate::print::SchemaPrinter;
+use crate::types::FieldType;
 pub use protobuf_gen_derive::*;
 
 pub trait ProtobufGen: Sized {
