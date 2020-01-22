@@ -383,7 +383,7 @@ impl ConversionGenerator {
             .map(|x| {
                 let field = x.ident.as_ref().unwrap();
                 if let Type::Path(type_path) = &x.ty {
-                    let type_ident = &type_path.path.segments.last().unwrap().value().ident;
+                    let type_ident = &type_path.path.segments.last().unwrap().ident;
                     if type_ident == "Vec" || type_ident == "HashSet" || type_ident == "IndexMap" || type_ident == "IndexSet" {
                         return quote!(#field : #field.into_iter().map(|x| Ok(x.try_into()?)).collect::<Fallible<_>>()?,);
                     }

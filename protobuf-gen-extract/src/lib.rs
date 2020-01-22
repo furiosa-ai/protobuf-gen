@@ -1,5 +1,6 @@
 use syn::{
-    Fields, FieldsNamed, File, Item, ItemEnum, ItemStruct, Meta, MetaList, NestedMeta, Variant,
+    Fields, FieldsNamed, File, Item, ItemEnum, ItemStruct, Meta, MetaList, NestedMeta, Path,
+    Variant,
 };
 
 pub trait Extract {
@@ -72,10 +73,19 @@ pub fn extract_message<T: Extract + ?Sized>(e: &mut T, item_struct: &ItemStruct)
     );
 }
 
+fn path_to_string(path: &Path) -> String {
+    let segments: Vec<String> = path
+        .segments
+        .iter()
+        .map(|segment| segment.ident.to_string())
+        .collect();
+    segments.join("::")
+}
+
 fn collect_items(file: &File) -> Vec<&Item> {
     let is_protobuf_gen = |nested_meta: &NestedMeta| {
-        if let NestedMeta::Meta(Meta::Word(meta_word)) = nested_meta {
-            meta_word == "ProtobufGen"
+        if let NestedMeta::Meta(Meta::Path(path)) = nested_meta {
+            path_to_string(&path) == "ProtobufGen"
         } else {
             false
         }
@@ -86,8 +96,8 @@ fn collect_items(file: &File) -> Vec<&Item> {
         .filter(|item| match item {
             Item::Struct(ItemStruct { attrs, .. }) | Item::Enum(ItemEnum { attrs, .. }) => {
                 attrs.iter().any(|attr| {
-                    if let Meta::List(MetaList { ident, nested, .. }) = attr.parse_meta().unwrap() {
-                        ident == "derive"
+                    if let Meta::List(MetaList { path, nested, .. }) = attr.parse_meta().unwrap() {
+                        path_to_string(&path) == "derive"
                             && nested
                                 .iter()
                                 .any(|nested_meta| is_protobuf_gen(nested_meta))

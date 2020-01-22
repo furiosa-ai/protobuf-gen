@@ -177,14 +177,14 @@ impl<'a> Extract for SchemaFileBuilder<'a> {
 }
 
 pub(crate) fn type_path_ident(type_path: &TypePath) -> &Ident {
-    &type_path.path.segments.last().unwrap().value().ident
+    &type_path.path.segments.last().unwrap().ident
 }
 
 pub(crate) fn generic_type_of(type_path: &TypePath) -> Option<&Type> {
     type_path.path.segments.last().and_then(|x| {
-        if let PathArguments::AngleBracketed(g) = &x.value().arguments {
+        if let PathArguments::AngleBracketed(g) = &x.arguments {
             g.args.first().and_then(|x| {
-                if let GenericArgument::Type(g) = x.value() {
+                if let GenericArgument::Type(g) = x {
                     Some(g)
                 } else {
                     None
