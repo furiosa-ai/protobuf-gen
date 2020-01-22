@@ -60,7 +60,7 @@ pub fn extract_message<T: Extract + ?Sized>(e: &mut T, item_struct: &ItemStruct)
                 .collect(),
             ..fields_named.clone()
         };
-        if fields_named.named.len() > 0 {
+        if !fields_named.named.is_empty() {
             e.extract_message_with_fields_named(item_struct, &fields_named);
             return;
         }
@@ -110,13 +110,15 @@ pub fn extract_from_file<T: Extract + ?Sized>(e: &mut T, file: &File) {
                 extract_message(e, item_struct);
             }
             Item::Enum(item_enum) => {
-                if item_enum.variants.iter().all(|v| {
+                let is_unit = |v: &Variant| {
                     if let Fields::Unit = v.fields {
                         true
                     } else {
                         false
                     }
-                }) {
+                };
+
+                if item_enum.variants.iter().all(is_unit) {
                     e.extract_enumerator(item_enum);
                 } else {
                     e.extract_one_of(item_enum);

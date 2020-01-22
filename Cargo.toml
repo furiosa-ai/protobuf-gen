@@ -13,7 +13,7 @@ prost = "0.5"
 prost-build = "0.5"
 protobuf-gen-derive = { path = "protobuf-gen-derive" }
 protobuf-gen-extract = { path = "protobuf-gen-extract" }
-syn = { version = "0.15", features = ["full"] }
+syn = { version = "0.15", features = ["visit"] }
 syn_util = "0.3"
 
 [dev-dependencies]

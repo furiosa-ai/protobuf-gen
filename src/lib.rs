@@ -111,6 +111,7 @@ impl Config {
             fs::create_dir_all(proxy_target_dir)?;
 
             let mut config = prost_build::Config::new();
+            config.type_attribute(".", "#[allow(clippy::large_enum_variant)]");
             config.out_dir(proxy_target_dir);
             config.compile_protos(&in_files, &[PathBuf::from(&self.proto_target_dir)])?;
         }

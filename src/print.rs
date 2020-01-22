@@ -84,12 +84,12 @@ fn print_message(message: &Message, indent: usize, f: &mut fmt::Formatter<'_>) -
 
     for msg in &message.messages {
         print_message(msg, indent + 2, f)?;
-        writeln!(f, "")?;
+        writeln!(f)?;
     }
 
     for oneof in &message.oneofs {
         print_oneof(oneof, indent + 2, f)?;
-        writeln!(f, "")?;
+        writeln!(f)?;
     }
 
     for field in &message.fields {
@@ -114,16 +114,16 @@ impl<'a> fmt::Display for SchemaPrinter<'a> {
         for path in &self.0.import_paths {
             writeln!(f, "import \"{}\";", path.display())?;
         }
-        writeln!(f, "")?;
+        writeln!(f)?;
 
         for e in &self.0.enums {
             print_enum(e, 0, f)?;
         }
-        writeln!(f, "")?;
+        writeln!(f)?;
 
         for m in &self.0.messages {
             print_message(m, 0, f)?;
-            writeln!(f, "")?;
+            writeln!(f)?;
         }
         Ok(())
     }
