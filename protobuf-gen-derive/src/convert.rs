@@ -323,7 +323,7 @@ impl Extract for ConversionGenerator {
 
                     let mut buffer = Vec::new();
                     r.read_to_end(&mut buffer)?;
-                    let proxy = #proxy::#ident::from_i32(prost::Message::decode(buffer)?)
+                    let proxy = #proxy::#ident::from_i32(prost::Message::decode(&buffer[..])?)
                         .ok_or_else(|| format_err!("invalid \"{}\"", stringify!(#ident)))?;
                     proxy.try_into()
                 }
@@ -357,7 +357,7 @@ impl ConversionGenerator {
 
                     let mut buffer = Vec::new();
                     r.read_to_end(&mut buffer)?;
-                    let proxy: #proxy::#ident = prost::Message::decode(buffer)?;
+                    let proxy: #proxy::#ident = prost::Message::decode(&buffer[..])?;
                     proxy.try_into()
                 }
             }
