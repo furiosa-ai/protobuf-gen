@@ -5,11 +5,10 @@ authors = ["Boncheol Gu <boncheol.gu@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-bytes = "0.4"
 failure = "0.1"
 proptest = "0.9"
 proptest-derive = "0.1.1"
-prost = "0.5"
+prost = "0.6"
 protobuf-gen = { path = ".." }
 
 [build-dependencies]
