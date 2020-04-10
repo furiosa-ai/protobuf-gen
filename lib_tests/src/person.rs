@@ -1,6 +1,5 @@
 use std::convert::{TryFrom, TryInto};
 
-use failure::{Error, Fallible};
 use protobuf_gen::ProtobufGen;
 
 use crate::city::City;
@@ -44,17 +43,17 @@ pub enum AreaCode {
 pub struct NumberBuffer(Vec<u8>);
 
 impl TryInto<Vec<u8>> for NumberBuffer {
-    type Error = Error;
+    type Error = anyhow::Error;
 
-    fn try_into(self) -> Fallible<Vec<u8>> {
+    fn try_into(self) -> anyhow::Result<Vec<u8>, Self::Error> {
         Ok(self.0)
     }
 }
 
 impl TryFrom<Vec<u8>> for NumberBuffer {
-    type Error = Error;
+    type Error = anyhow::Error;
 
-    fn try_from(vs: Vec<u8>) -> Fallible<Self> {
+    fn try_from(vs: Vec<u8>) -> anyhow::Result<Self, Self::Error> {
         Ok(NumberBuffer(vs))
     }
 }
