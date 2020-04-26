@@ -1,9 +1,7 @@
-use failure::Fallible;
-
 use protobuf_gen::Config;
 
 #[test]
-fn unittest_yellow_book() -> Fallible<()> {
+fn unittest_yellow_book() -> anyhow::Result<()> {
     env_logger::try_init().unwrap_or_default();
 
     let mut config = Config::new("protos", Some("proxy"));

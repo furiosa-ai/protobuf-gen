@@ -25,9 +25,9 @@ impl Extract for ConversionGenerator {
 
         self.token_stream.extend(quote! {
             impl ::std::convert::TryInto<Option<#proxy::#ident>> for #ident {
-                type Error = ::failure::Error;
+                type Error = ::anyhow::Error;
 
-                fn try_into(self) -> ::failure::Fallible<Option<#proxy::#ident>> {
+                fn try_into(self) -> ::std::result::Result<Option<#proxy::#ident>, Self::Error> {
                     use std::convert::TryInto;
 
                     let #ident { #(#bindings)* .. } = self;
@@ -38,9 +38,9 @@ impl Extract for ConversionGenerator {
             }
 
             impl ::std::convert::TryInto<#proxy::#ident> for #ident {
-                type Error = ::failure::Error;
+                type Error = ::anyhow::Error;
 
-                fn try_into(self) -> ::failure::Fallible<#proxy::#ident> {
+                fn try_into(self) -> ::std::result::Result<#proxy::#ident, Self::Error> {
                     use std::convert::TryInto;
 
                     let #ident { #(#bindings)* .. } = self;
@@ -68,13 +68,13 @@ impl Extract for ConversionGenerator {
 
         self.token_stream.extend(quote! {
             impl ::std::convert::TryFrom<Option<#proxy::#ident>> for #ident {
-                type Error = ::failure::Error;
+                type Error = ::anyhow::Error;
 
-                fn try_from(other: Option<#proxy::#ident>) -> ::failure::Fallible<Self> {
+                fn try_from(other: Option<#proxy::#ident>) -> ::std::result::Result<Self, Self::Error> {
                     use std::convert::TryInto;
 
                     let #proxy::#ident { #(#bindings)* } = other
-                        .ok_or_else(|| format_err!("empty \"{}\" object", stringify!(#proxy::#ident)))?
+                        .ok_or_else(|| ::anyhow::anyhow!("empty \"{}\" object", stringify!(#proxy::#ident)))?
                         .try_into()?;
 
                     Ok(Self {
@@ -85,9 +85,9 @@ impl Extract for ConversionGenerator {
             }
 
             impl ::std::convert::TryFrom<#proxy::#ident> for #ident {
-                type Error = ::failure::Error;
+                type Error = ::anyhow::Error;
 
-                fn try_from(#proxy::#ident { #(#bindings)* }: #proxy::#ident) -> ::failure::Fallible<Self> {
+                fn try_from(#proxy::#ident { #(#bindings)* }: #proxy::#ident) -> ::std::result::Result<Self, Self::Error> {
                     use std::convert::TryInto;
 
                     Ok(Self {
@@ -117,9 +117,9 @@ impl Extract for ConversionGenerator {
 
         self.token_stream.extend(quote! {
             impl ::std::convert::TryFrom<#proxy::#inner_mod::#variant_inner> for #ident {
-                type Error = ::failure::Error;
+                type Error = ::anyhow::Error;
 
-                fn try_from(#proxy::#inner_mod::#variant_inner { #(#bindings)* }: #proxy::#inner_mod::#variant_inner) -> ::failure::Fallible<Self> {
+                fn try_from(#proxy::#inner_mod::#variant_inner { #(#bindings)* }: #proxy::#inner_mod::#variant_inner) -> ::std::result::Result<Self, Self::Error> {
                     use std::convert::TryInto;
 
                     Ok(#ident::#variant {
@@ -139,9 +139,9 @@ impl Extract for ConversionGenerator {
 
         self.token_stream.extend(quote! {
             impl ::std::convert::TryFrom<#proxy::#inner_mod::#variant_inner> for #ident {
-                type Error = ::failure::Error;
+                type Error = ::anyhow::Error;
 
-                fn try_from(_: #proxy::#inner_mod::#variant_inner) -> ::failure::Fallible<Self> {
+                fn try_from(_: #proxy::#inner_mod::#variant_inner) -> ::std::result::Result<Self, Self::Error> {
                     Ok(#ident::#variant {})
                 }
             }
@@ -182,9 +182,9 @@ impl Extract for ConversionGenerator {
 
         self.token_stream.extend(quote! {
             impl ::std::convert::TryInto<#proxy::#ident> for #ident {
-                type Error = ::failure::Error;
+                type Error = ::anyhow::Error;
 
-                fn try_into(self) -> ::failure::Fallible<#proxy::#ident> {
+                fn try_into(self) -> ::std::result::Result<#proxy::#ident, Self::Error> {
                     use std::convert::TryInto;
 
                     Ok(match self {
@@ -194,9 +194,9 @@ impl Extract for ConversionGenerator {
             }
 
             impl ::std::convert::TryInto<Option<#proxy::#ident>> for #ident {
-                type Error = ::failure::Error;
+                type Error = ::anyhow::Error;
 
-                fn try_into(self) -> ::failure::Fallible<Option<#proxy::#ident>> {
+                fn try_into(self) -> ::std::result::Result<Option<#proxy::#ident>, Self::Error> {
                     use std::convert::TryInto;
 
                     Ok(Some(match self {
@@ -217,27 +217,27 @@ impl Extract for ConversionGenerator {
 
         self.token_stream.extend(quote! {
             impl ::std::convert::TryFrom<#proxy::#ident> for #ident {
-                type Error = ::failure::Error;
+                type Error = ::anyhow::Error;
 
-                fn try_from(#proxy::#ident { inner }: #proxy::#ident) -> ::failure::Fallible<Self> {
+                fn try_from(#proxy::#ident { inner }: #proxy::#ident) -> ::std::result::Result<Self, Self::Error> {
                     use std::convert::TryInto;
 
-                    match inner.ok_or_else(|| format_err!("\"{}\" doesn't have a value.", stringify!(#ident)))? {
+                    match inner.ok_or_else(|| ::anyhow::anyhow!("\"{}\" doesn't have a value.", stringify!(#ident)))? {
                         #(#cases)*
                     }
                 }
             }
 
             impl ::std::convert::TryFrom<Option<#proxy::#ident>> for #ident {
-                type Error = ::failure::Error;
+                type Error = ::anyhow::Error;
 
-                fn try_from(other: Option<#proxy::#ident>) -> ::failure::Fallible<Self> {
+                fn try_from(other: Option<#proxy::#ident>) -> ::std::result::Result<Self, Self::Error> {
                     use std::convert::TryInto;
 
                     let #proxy::#ident { inner } = other
-                        .ok_or_else(|| format_err!("empty \"{}\" object", stringify!(#proxy::#ident)))?
+                        .ok_or_else(|| ::anyhow::anyhow!("empty \"{}\" object", stringify!(#proxy::#ident)))?
                         .try_into()?;
-                    match inner.ok_or_else(|| format_err!("\"{}\" doesn't have a value.", stringify!(#proxy::#ident)))? {
+                    match inner.ok_or_else(|| ::anyhow::anyhow!("\"{}\" doesn't have a value.", stringify!(#proxy::#ident)))? {
                         #(#cases)*
                     }
                 }
@@ -258,9 +258,9 @@ impl Extract for ConversionGenerator {
 
         self.token_stream.extend(quote! {
             impl ::std::convert::TryInto<#proxy::#ident> for #ident {
-                type Error = ::failure::Error;
+                type Error = ::anyhow::Error;
 
-                fn try_into(self) -> ::failure::Fallible<#proxy::#ident> {
+                fn try_into(self) -> ::std::result::Result<#proxy::#ident, Self::Error> {
                     Ok(match self {
                         #(#cases)*
                     })
@@ -268,9 +268,9 @@ impl Extract for ConversionGenerator {
             }
 
             impl ::std::convert::TryInto<i32> for #ident {
-                type Error = ::failure::Error;
+                type Error = ::anyhow::Error;
 
-                fn try_into(self) -> ::failure::Fallible<i32> {
+                fn try_into(self) -> ::std::result::Result<i32, Self::Error> {
                     let proxy: #proxy::#ident = self.try_into()?;
                     Ok(proxy.into())
                 }
@@ -284,9 +284,9 @@ impl Extract for ConversionGenerator {
 
         self.token_stream.extend(quote! {
             impl ::std::convert::TryFrom<#proxy::#ident> for #ident {
-                type Error = ::failure::Error;
+                type Error = ::anyhow::Error;
 
-                fn try_from(other: #proxy::#ident) -> ::failure::Fallible<Self> {
+                fn try_from(other: #proxy::#ident) -> ::std::result::Result<Self, Self::Error> {
                     Ok(match other {
                         #(#cases)*
                     })
@@ -294,11 +294,11 @@ impl Extract for ConversionGenerator {
             }
 
             impl ::std::convert::TryFrom<i32> for #ident {
-                type Error = ::failure::Error;
+                type Error = ::anyhow::Error;
 
-                fn try_from(n: i32) -> ::failure::Fallible<Self> {
+                fn try_from(n: i32) -> ::std::result::Result<Self, Self::Error> {
                     let proxy = #proxy::#ident::from_i32(n)
-                        .ok_or_else(|| format_err!("invalid \"{}\"", stringify!(#proxy::#ident)))?;
+                        .ok_or_else(|| ::anyhow::anyhow!("invalid \"{}\"", stringify!(#proxy::#ident)))?;
                     proxy.try_into()
                 }
             }
@@ -306,7 +306,9 @@ impl Extract for ConversionGenerator {
 
         self.token_stream.extend(quote! {
             impl ProtobufGen for #ident {
-                fn to_protobuf<W: ::std::io::Write>(self, w: &mut W) -> ::failure::Fallible<()> {
+                type Error = ::anyhow::Error;
+
+                fn to_protobuf<W: ::std::io::Write>(self, w: &mut W) -> ::std::result::Result<(), Self::Error> {
                     use std::convert::TryInto;
                     use prost::Message;
 
@@ -318,13 +320,13 @@ impl Extract for ConversionGenerator {
                     Ok(())
                 }
 
-                fn from_protobuf<R: ::std::io::Read>(r: &mut R) -> ::failure::Fallible<Self> {
+                fn from_protobuf<R: ::std::io::Read>(r: &mut R) -> ::std::result::Result<Self, Self::Error> {
                     use std::convert::TryInto;
 
                     let mut buffer = Vec::new();
                     r.read_to_end(&mut buffer)?;
                     let proxy = #proxy::#ident::from_i32(prost::Message::decode(&buffer[..])?)
-                        .ok_or_else(|| format_err!("invalid \"{}\"", stringify!(#ident)))?;
+                        .ok_or_else(|| ::anyhow::anyhow!("invalid \"{}\"", stringify!(#ident)))?;
                     proxy.try_into()
                 }
             }
@@ -341,7 +343,9 @@ impl ConversionGenerator {
 
         self.token_stream.extend(quote! {
             impl ProtobufGen for #ident {
-                fn to_protobuf<W: ::std::io::Write>(self, w: &mut W) -> ::failure::Fallible<()> {
+                type Error = ::anyhow::Error;
+
+                fn to_protobuf<W: ::std::io::Write>(self, w: &mut W) -> ::std::result::Result<(), Self::Error> {
                     use std::convert::TryInto;
                     use prost::Message;
 
@@ -352,7 +356,7 @@ impl ConversionGenerator {
                     Ok(())
                 }
 
-                fn from_protobuf<R: ::std::io::Read>(r: &mut R) -> ::failure::Fallible<Self> {
+                fn from_protobuf<R: ::std::io::Read>(r: &mut R) -> ::std::result::Result<Self, Self::Error> {
                     use std::convert::TryInto;
 
                     let mut buffer = Vec::new();
@@ -385,10 +389,10 @@ impl ConversionGenerator {
                 if let Type::Path(type_path) = &x.ty {
                     let type_ident = &type_path.path.segments.last().unwrap().ident;
                     if type_ident == "Vec" || type_ident == "HashSet" || type_ident == "IndexMap" || type_ident == "IndexSet" {
-                        return quote!(#field : #field.into_iter().map(|x| Ok(x.try_into()?)).collect::<Fallible<_>>()?,);
+                        return quote!(#field : #field.into_iter().map(|x| Ok(x.try_into()?)).collect::<::anyhow::Result<_>>()?,);
                     }
                     else if type_ident == "HashMap" {
-                        return quote!(#field : #field.into_iter().map(|(k, v)| Ok((k.try_into()?, v.try_into()?))).collect::<Fallible<_>>()?,);
+                        return quote!(#field : #field.into_iter().map(|(k, v)| Ok((k.try_into()?, v.try_into()?))).collect::<::anyhow::Result<_>>()?,);
                     }
                 }
                 quote!(#field : #field.try_into()?,)

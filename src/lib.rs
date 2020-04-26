@@ -10,8 +10,7 @@ use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::PathBuf;
-
-use failure::Fallible;
+use std::result;
 
 use crate::parse::SchemaFile;
 use crate::print::SchemaPrinter;
@@ -19,8 +18,10 @@ use crate::types::FieldType;
 pub use protobuf_gen_derive::*;
 
 pub trait ProtobufGen: Sized {
-    fn to_protobuf<W: Write>(self, w: &mut W) -> Fallible<()>;
-    fn from_protobuf<R: Read>(r: &mut R) -> Fallible<Self>;
+    type Error;
+
+    fn to_protobuf<W: Write>(self, w: &mut W) -> result::Result<(), Self::Error>;
+    fn from_protobuf<R: Read>(r: &mut R) -> result::Result<Self, Self::Error>;
 }
 
 pub struct Config {
@@ -68,7 +69,7 @@ impl Config {
         Ok((File::create(file_path.as_path())?, file_path))
     }
 
-    fn build_context(&self) -> Fallible<Context> {
+    fn build_context(&self) -> anyhow::Result<Context> {
         let mut context = Context::default();
         for (old, new) in &self.type_replacement {
             context.add_type_replacement(old.to_string(), new.to_string());
@@ -84,9 +85,10 @@ impl Config {
         Ok(context)
     }
 
-    pub fn generate(&self) -> Fallible<()> {
+    pub fn generate(&self) -> anyhow::Result<()> {
         let mut in_files = Vec::new();
         let mut context = self.build_context()?;
+
 
         // generate protobuf schemas from Rust
         for (package, sources) in &self.sources {
