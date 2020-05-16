@@ -1,4 +1,4 @@
-use std::convert::{TryFrom, TryInto};
+use std::convert::TryInto;
 
 use protobuf_gen::ProtobufGen;
 
@@ -42,19 +42,15 @@ pub enum AreaCode {
 #[derive(Debug, Default, Clone, Arbitrary, PartialEq)]
 pub struct NumberBuffer(Vec<u8>);
 
-impl TryInto<Vec<u8>> for NumberBuffer {
-    type Error = anyhow::Error;
-
-    fn try_into(self) -> anyhow::Result<Vec<u8>, Self::Error> {
-        Ok(self.0)
+impl Into<Vec<u8>> for NumberBuffer {
+    fn into(self) -> Vec<u8> {
+        self.0
     }
 }
 
-impl TryFrom<Vec<u8>> for NumberBuffer {
-    type Error = anyhow::Error;
-
-    fn try_from(vs: Vec<u8>) -> anyhow::Result<Self, Self::Error> {
-        Ok(NumberBuffer(vs))
+impl From<Vec<u8>> for NumberBuffer {
+    fn from(vs: Vec<u8>) -> Self {
+        NumberBuffer(vs)
     }
 }
 

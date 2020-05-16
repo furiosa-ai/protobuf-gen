@@ -1,7 +1,9 @@
-use protobuf_gen::Config;
+use std::result;
+
+use protobuf_gen::{Config, ConfigError};
 
 #[test]
-fn unittest_yellow_book() -> anyhow::Result<()> {
+fn unittest_yellow_book() -> result::Result<(), ConfigError> {
     env_logger::try_init().unwrap_or_default();
 
     let mut config = Config::new("protos", Some("proxy"));

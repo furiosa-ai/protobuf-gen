@@ -1,6 +1,8 @@
-use protobuf_gen::Config;
+use std::result;
 
-pub fn main() -> anyhow::Result<()> {
+use protobuf_gen::{Config, ConfigError};
+
+pub fn main() -> result::Result<(), ConfigError> {
     let mut config = Config::new("protos", Some("proxy"));
     config.add_source("src/person.rs", "yellow_book");
     config.add_source("src/city.rs", "yellow_book");

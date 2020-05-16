@@ -5,15 +5,15 @@ authors = ["Boncheol Gu <boncheol.gu@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-anyhow = "1.0"
 heck = "0.3"
 log = "0.4"
-prost = "0.6"
-prost-build = "0.6"
+prost = "0.6.1"
+prost-build = "0.6.1"
 protobuf-gen-derive = { path = "protobuf-gen-derive" }
 protobuf-gen-extract = { path = "protobuf-gen-extract" }
 syn = { version = "1.0", features = ["visit"] }
 syn_util = "0.4"
+thiserror = "1.0.17"
 
 [dev-dependencies]
 env_logger = "0.6"

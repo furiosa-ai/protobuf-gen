@@ -2,6 +2,7 @@
 extern crate log;
 extern crate protobuf_gen_extract as extract;
 
+pub mod error;
 pub mod parse;
 pub mod print;
 mod types;
@@ -12,9 +13,12 @@ use std::io::{self, Read, Write};
 use std::path::PathBuf;
 use std::result;
 
+use thiserror::Error;
+
 use crate::parse::SchemaFile;
 use crate::print::SchemaPrinter;
 use crate::types::FieldType;
+pub use error::Error;
 pub use protobuf_gen_derive::*;
 
 pub trait ProtobufGen: Sized {
@@ -29,6 +33,14 @@ pub struct Config {
     pub proxy_target_dir: Option<PathBuf>,
     pub sources: HashMap<String, Vec<PathBuf>>,
     pub type_replacement: HashMap<String, String>,
+}
+
+#[derive(Error, Debug)]
+pub enum ConfigError {
+    #[error("failed to read a file.")]
+    IoError(#[from] io::Error),
+    #[error("failed to parse a string.")]
+    ParseError(#[from] syn::Error),
 }
 
 impl Config {
@@ -49,10 +61,7 @@ impl Config {
     }
 
     pub fn add_source<P: Into<PathBuf>, S: Into<String>>(&mut self, file: P, package: S) {
-        self.sources
-            .entry(package.into())
-            .or_default()
-            .push(file.into());
+        self.sources.entry(package.into()).or_default().push(file.into());
     }
 
     fn create_proto_file<P: AsRef<str>>(&self, package: P) -> io::Result<(File, PathBuf)> {
@@ -69,7 +78,7 @@ impl Config {
         Ok((File::create(file_path.as_path())?, file_path))
     }
 
-    fn build_context(&self) -> anyhow::Result<Context> {
+    fn build_context(&self) -> result::Result<Context, ConfigError> {
         let mut context = Context::default();
         for (old, new) in &self.type_replacement {
             context.add_type_replacement(old.to_string(), new.to_string());
@@ -85,10 +94,9 @@ impl Config {
         Ok(context)
     }
 
-    pub fn generate(&self) -> anyhow::Result<()> {
+    pub fn generate(&self) -> result::Result<(), ConfigError> {
         let mut in_files = Vec::new();
         let mut context = self.build_context()?;
-
 
         // generate protobuf schemas from Rust
         for (package, sources) in &self.sources {
@@ -131,12 +139,10 @@ impl ItemDictionary {
         for item in items {
             match item {
                 syn::Item::Struct(inner) => {
-                    self.package_map
-                        .insert(inner.ident.to_string(), package.to_string());
+                    self.package_map.insert(inner.ident.to_string(), package.to_string());
                 }
                 syn::Item::Enum(inner) => {
-                    self.package_map
-                        .insert(inner.ident.to_string(), package.to_string());
+                    self.package_map.insert(inner.ident.to_string(), package.to_string());
                 }
                 _ => {}
             }
@@ -180,7 +186,6 @@ impl Default for Context {
 
 impl Context {
     pub fn add_type_replacement(&mut self, old: String, new: String) {
-        self.type_replacement
-            .insert(old, FieldType::MessageOrEnum(new));
+        self.type_replacement.insert(old, FieldType::MessageOrEnum(new));
     }
 }

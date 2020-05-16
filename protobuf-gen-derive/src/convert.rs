@@ -2,10 +2,11 @@ use std::collections::HashSet;
 
 use heck::SnakeCase;
 use proc_macro2::TokenStream;
+use quote::quote;
 use quote::ToTokens;
 use syn::{self, Fields, FieldsNamed, Ident, ItemEnum, ItemStruct, Type, TypePath, Variant};
 
-use extract::Extract;
+use crate::extract::Extract;
 
 pub(crate) struct ConversionGenerator {
     pub(crate) token_stream: TokenStream,
@@ -25,7 +26,7 @@ impl Extract for ConversionGenerator {
 
         self.token_stream.extend(quote! {
             impl ::std::convert::TryInto<Option<#proxy::#ident>> for #ident {
-                type Error = ::anyhow::Error;
+                type Error = protobuf_gen::Error;
 
                 fn try_into(self) -> ::std::result::Result<Option<#proxy::#ident>, Self::Error> {
                     use std::convert::TryInto;
@@ -38,7 +39,7 @@ impl Extract for ConversionGenerator {
             }
 
             impl ::std::convert::TryInto<#proxy::#ident> for #ident {
-                type Error = ::anyhow::Error;
+                type Error = protobuf_gen::Error;
 
                 fn try_into(self) -> ::std::result::Result<#proxy::#ident, Self::Error> {
                     use std::convert::TryInto;
@@ -51,31 +52,33 @@ impl Extract for ConversionGenerator {
             }
         });
 
-        let ref private_fields =
-            if let Fields::Named(FieldsNamed { named, .. }) = &item_struct.fields {
-                let total_fields: HashSet<_> = named.iter().collect();
-                let proto_fields: HashSet<_> = fields_named.named.iter().collect();
-                (&total_fields - &proto_fields)
-                    .into_iter()
-                    .map(|f| {
-                        let ident = &f.ident;
-                        quote!(#ident: Default::default())
-                    })
-                    .collect()
-            } else {
-                Vec::new()
-            };
+        let private_fields = if let Fields::Named(FieldsNamed { named, .. }) = &item_struct.fields {
+            let total_fields: HashSet<_> = named.iter().collect();
+            let proto_fields: HashSet<_> = fields_named.named.iter().collect();
+            (&total_fields - &proto_fields)
+                .into_iter()
+                .map(|f| {
+                    let ident = &f.ident;
+                    quote!(#ident: Default::default())
+                })
+                .collect()
+        } else {
+            Vec::new()
+        };
+        let private_fields = &private_fields;
 
         self.token_stream.extend(quote! {
             impl ::std::convert::TryFrom<Option<#proxy::#ident>> for #ident {
-                type Error = ::anyhow::Error;
+                type Error = protobuf_gen::Error;
 
                 fn try_from(other: Option<#proxy::#ident>) -> ::std::result::Result<Self, Self::Error> {
                     use std::convert::TryInto;
 
                     let #proxy::#ident { #(#bindings)* } = other
-                        .ok_or_else(|| ::anyhow::anyhow!("empty \"{}\" object", stringify!(#proxy::#ident)))?
-                        .try_into()?;
+                        .ok_or_else(|| protobuf_gen::Error::EmptyObject(stringify!(#proxy::#ident).to_string()))?
+                        .try_into().map_err(|_| protobuf_gen::Error::TryFromError(
+                            stringify!(#proxy::#ident).to_string(),
+                        ))?;
 
                     Ok(Self {
                         #(#assignments)*
@@ -85,7 +88,7 @@ impl Extract for ConversionGenerator {
             }
 
             impl ::std::convert::TryFrom<#proxy::#ident> for #ident {
-                type Error = ::anyhow::Error;
+                type Error = protobuf_gen::Error;
 
                 fn try_from(#proxy::#ident { #(#bindings)* }: #proxy::#ident) -> ::std::result::Result<Self, Self::Error> {
                     use std::convert::TryInto;
@@ -117,7 +120,7 @@ impl Extract for ConversionGenerator {
 
         self.token_stream.extend(quote! {
             impl ::std::convert::TryFrom<#proxy::#inner_mod::#variant_inner> for #ident {
-                type Error = ::anyhow::Error;
+                type Error = protobuf_gen::Error;
 
                 fn try_from(#proxy::#inner_mod::#variant_inner { #(#bindings)* }: #proxy::#inner_mod::#variant_inner) -> ::std::result::Result<Self, Self::Error> {
                     use std::convert::TryInto;
@@ -139,7 +142,7 @@ impl Extract for ConversionGenerator {
 
         self.token_stream.extend(quote! {
             impl ::std::convert::TryFrom<#proxy::#inner_mod::#variant_inner> for #ident {
-                type Error = ::anyhow::Error;
+                type Error = protobuf_gen::Error;
 
                 fn try_from(_: #proxy::#inner_mod::#variant_inner) -> ::std::result::Result<Self, Self::Error> {
                     Ok(#ident::#variant {})
@@ -153,7 +156,7 @@ impl Extract for ConversionGenerator {
         let proxy = &self.proxy_mod;
         let inner_mod: Ident = syn::parse_str(&ident.to_string().to_snake_case()).unwrap();
 
-        let ref cases = item_enum.variants.iter().map(|v| {
+        let cases = item_enum.variants.iter().map(|v| {
             let variant = &v.ident;
             let variant_inner: Ident = syn::parse_str(&format!("{}Inner", variant)).unwrap();
             match &v.fields {
@@ -174,15 +177,22 @@ impl Extract for ConversionGenerator {
                 },
                 Fields::Unnamed(_) => quote!{
                     #ident::#variant(inner) => #proxy::#ident {
-                        inner: Some(#proxy::#inner_mod::Inner::#variant(inner.try_into()?)),
+                        inner: Some(#proxy::#inner_mod::Inner::#variant(
+                            inner.try_into().map_err(|_| {
+                                protobuf_gen::Error::TryFromError(
+                                    stringify!(#proxy::#ident).to_string(),
+                                )
+                            })?
+                        )),
                     },
                 },
             }
         }).collect::<Vec<_>>();
+        let cases = &cases;
 
         self.token_stream.extend(quote! {
             impl ::std::convert::TryInto<#proxy::#ident> for #ident {
-                type Error = ::anyhow::Error;
+                type Error = protobuf_gen::Error;
 
                 fn try_into(self) -> ::std::result::Result<#proxy::#ident, Self::Error> {
                     use std::convert::TryInto;
@@ -194,7 +204,7 @@ impl Extract for ConversionGenerator {
             }
 
             impl ::std::convert::TryInto<Option<#proxy::#ident>> for #ident {
-                type Error = ::anyhow::Error;
+                type Error = protobuf_gen::Error;
 
                 fn try_into(self) -> ::std::result::Result<Option<#proxy::#ident>, Self::Error> {
                     use std::convert::TryInto;
@@ -206,38 +216,49 @@ impl Extract for ConversionGenerator {
             }
         });
 
-        let ref cases = item_enum
+        let cases = item_enum
             .variants
             .iter()
             .map(|v| {
                 let variant = &v.ident;
-                quote!(#proxy::#inner_mod::Inner::#variant(inner) => inner.try_into(),)
+                quote!(#proxy::#inner_mod::Inner::#variant(inner) =>
+                    inner.try_into().map_err(|_| {
+                        protobuf_gen::Error::TryFromError(
+                            stringify!(#proxy::#ident).to_string(),
+                        )
+                    }),
+                )
             })
             .collect::<Vec<_>>();
+        let cases = &cases;
 
         self.token_stream.extend(quote! {
             impl ::std::convert::TryFrom<#proxy::#ident> for #ident {
-                type Error = ::anyhow::Error;
+                type Error = protobuf_gen::Error;
 
                 fn try_from(#proxy::#ident { inner }: #proxy::#ident) -> ::std::result::Result<Self, Self::Error> {
                     use std::convert::TryInto;
 
-                    match inner.ok_or_else(|| ::anyhow::anyhow!("\"{}\" doesn't have a value.", stringify!(#ident)))? {
+                    match inner.ok_or_else(|| protobuf_gen::Error::EmptyObject(stringify!(#ident).to_string()))? {
                         #(#cases)*
                     }
                 }
             }
 
             impl ::std::convert::TryFrom<Option<#proxy::#ident>> for #ident {
-                type Error = ::anyhow::Error;
+                type Error = protobuf_gen::Error;
 
                 fn try_from(other: Option<#proxy::#ident>) -> ::std::result::Result<Self, Self::Error> {
                     use std::convert::TryInto;
 
                     let #proxy::#ident { inner } = other
-                        .ok_or_else(|| ::anyhow::anyhow!("empty \"{}\" object", stringify!(#proxy::#ident)))?
-                        .try_into()?;
-                    match inner.ok_or_else(|| ::anyhow::anyhow!("\"{}\" doesn't have a value.", stringify!(#proxy::#ident)))? {
+                        .ok_or_else(|| protobuf_gen::Error::EmptyObject(stringify!(#proxy::#ident).to_string()))?
+                        .try_into().map_err(|_| {
+                            protobuf_gen::Error::TryFromError(
+                                stringify!(#proxy::#ident).to_string(),
+                            )
+                        })?;
+                    match inner.ok_or_else(|| protobuf_gen::Error::EmptyObject(stringify!(#proxy::#ident).to_string()))? {
                         #(#cases)*
                     }
                 }
@@ -258,7 +279,7 @@ impl Extract for ConversionGenerator {
 
         self.token_stream.extend(quote! {
             impl ::std::convert::TryInto<#proxy::#ident> for #ident {
-                type Error = ::anyhow::Error;
+                type Error = protobuf_gen::Error;
 
                 fn try_into(self) -> ::std::result::Result<#proxy::#ident, Self::Error> {
                     Ok(match self {
@@ -268,10 +289,15 @@ impl Extract for ConversionGenerator {
             }
 
             impl ::std::convert::TryInto<i32> for #ident {
-                type Error = ::anyhow::Error;
+                type Error = protobuf_gen::Error;
 
                 fn try_into(self) -> ::std::result::Result<i32, Self::Error> {
-                    let proxy: #proxy::#ident = self.try_into()?;
+                    let proxy: #proxy::#ident = self.try_into().map_err(|_| {
+                        protobuf_gen::Error::TryFromError(
+                            stringify!(#proxy::#ident).to_string(),
+                        )
+                    })?;
+
                     Ok(proxy.into())
                 }
             }
@@ -284,7 +310,7 @@ impl Extract for ConversionGenerator {
 
         self.token_stream.extend(quote! {
             impl ::std::convert::TryFrom<#proxy::#ident> for #ident {
-                type Error = ::anyhow::Error;
+                type Error = protobuf_gen::Error;
 
                 fn try_from(other: #proxy::#ident) -> ::std::result::Result<Self, Self::Error> {
                     Ok(match other {
@@ -294,25 +320,33 @@ impl Extract for ConversionGenerator {
             }
 
             impl ::std::convert::TryFrom<i32> for #ident {
-                type Error = ::anyhow::Error;
+                type Error = protobuf_gen::Error;
 
                 fn try_from(n: i32) -> ::std::result::Result<Self, Self::Error> {
                     let proxy = #proxy::#ident::from_i32(n)
-                        .ok_or_else(|| ::anyhow::anyhow!("invalid \"{}\"", stringify!(#proxy::#ident)))?;
-                    proxy.try_into()
+                        .ok_or_else(|| protobuf_gen::Error::InvalidIdent(stringify!(#proxy::#ident).to_string()))?;
+                    proxy.try_into().map_err(|_| {
+                        protobuf_gen::Error::TryFromError(
+                            stringify!(#proxy::#ident).to_string(),
+                        )
+                    })
                 }
             }
         });
 
         self.token_stream.extend(quote! {
             impl ProtobufGen for #ident {
-                type Error = ::anyhow::Error;
+                type Error = protobuf_gen::Error;
 
                 fn to_protobuf<W: ::std::io::Write>(self, w: &mut W) -> ::std::result::Result<(), Self::Error> {
                     use std::convert::TryInto;
                     use prost::Message;
 
-                    let proxy: #proxy::#ident = self.try_into()?;
+                    let proxy: #proxy::#ident = self.try_into().map_err(|_| {
+                        protobuf_gen::Error::TryFromError(
+                            stringify!(#proxy::#ident).to_string(),
+                        )
+                    })?;
                     let proxy: i32 = proxy.into();
                     let mut buffer = Vec::with_capacity(proxy.encoded_len());
                     proxy.encode(&mut buffer)?;
@@ -326,8 +360,12 @@ impl Extract for ConversionGenerator {
                     let mut buffer = Vec::new();
                     r.read_to_end(&mut buffer)?;
                     let proxy = #proxy::#ident::from_i32(prost::Message::decode(&buffer[..])?)
-                        .ok_or_else(|| ::anyhow::anyhow!("invalid \"{}\"", stringify!(#ident)))?;
-                    proxy.try_into()
+                        .ok_or_else(|| protobuf_gen::Error::InvalidIdent(stringify!(#ident).to_string()))?;
+                    proxy.try_into().map_err(|_| {
+                        protobuf_gen::Error::TryFromError(
+                            stringify!(#proxy::#ident).to_string(),
+                        )
+                    })
                 }
             }
         });
@@ -343,13 +381,18 @@ impl ConversionGenerator {
 
         self.token_stream.extend(quote! {
             impl ProtobufGen for #ident {
-                type Error = ::anyhow::Error;
+                type Error = protobuf_gen::Error;
 
                 fn to_protobuf<W: ::std::io::Write>(self, w: &mut W) -> ::std::result::Result<(), Self::Error> {
                     use std::convert::TryInto;
                     use prost::Message;
 
-                    let proxy: #proxy::#ident = self.try_into()?;
+                    let proxy: #proxy::#ident = self.try_into().map_err(|_| {
+                        protobuf_gen::Error::TryFromError(
+                            stringify!(#proxy::#ident).to_string(),
+                        )
+                    })?;
+
                     let mut buffer = Vec::with_capacity(proxy.encoded_len());
                     proxy.encode(&mut buffer)?;
                     w.write_all(&buffer)?;
@@ -362,7 +405,11 @@ impl ConversionGenerator {
                     let mut buffer = Vec::new();
                     r.read_to_end(&mut buffer)?;
                     let proxy: #proxy::#ident = prost::Message::decode(&buffer[..])?;
-                    proxy.try_into()
+                    proxy.try_into().map_err(|_| {
+                        protobuf_gen::Error::TryFromError(
+                            stringify!(#proxy::#ident).to_string(),
+                        )
+                    })
                 }
             }
         });
@@ -388,14 +435,47 @@ impl ConversionGenerator {
                 let field = x.ident.as_ref().unwrap();
                 if let Type::Path(type_path) = &x.ty {
                     let type_ident = &type_path.path.segments.last().unwrap().ident;
-                    if type_ident == "Vec" || type_ident == "HashSet" || type_ident == "IndexMap" || type_ident == "IndexSet" {
-                        return quote!(#field : #field.into_iter().map(|x| Ok(x.try_into()?)).collect::<::anyhow::Result<_>>()?,);
-                    }
-                    else if type_ident == "HashMap" {
-                        return quote!(#field : #field.into_iter().map(|(k, v)| Ok((k.try_into()?, v.try_into()?))).collect::<::anyhow::Result<_>>()?,);
+                    if type_ident == "Vec"
+                        || type_ident == "HashSet"
+                        || type_ident == "IndexMap"
+                        || type_ident == "IndexSet"
+                    {
+                        return quote!(
+                            #field : #field.into_iter().map(|x|
+                                x.try_into().map_err(|_|
+                                    protobuf_gen::Error::TryFromError(
+                                        stringify!(#field).to_string(),
+                                    )
+                                )
+                            ).collect::<::std::result::Result<_, protobuf_gen::Error>>()?,
+                        );
+                    } else if type_ident == "HashMap" {
+                        return quote!(
+                            #field : #field.into_iter().map(|(k, v)| {
+                                let k = k.try_into().map_err(|_|
+                                    protobuf_gen::Error::TryFromError(
+                                        stringify!(#field).to_string(),
+                                    )
+                                )?;
+
+                                let v = v.try_into().map_err(|_|
+                                    protobuf_gen::Error::TryFromError(
+                                        stringify!(#field).to_string(),
+                                    )
+                                )?;
+
+                                Ok((k, v))
+                            }).collect::<::std::result::Result<_, protobuf_gen::Error>>()?,
+                        );
                     }
                 }
-                quote!(#field : #field.try_into()?,)
+                quote!(
+                    #field : #field.try_into().map_err(|_|
+                        protobuf_gen::Error::TryFromError(
+                            stringify!(#field).to_string(),
+                        )
+                    )?,
+                )
             })
             .collect();
 
