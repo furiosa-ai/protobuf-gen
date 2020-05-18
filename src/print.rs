@@ -70,13 +70,7 @@ fn print_oneof(one_of: &OneOf, indent: usize, f: &mut fmt::Formatter<'_>) -> fmt
 }
 
 fn print_message(message: &Message, indent: usize, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    writeln!(
-        f,
-        "{:indent$}message {} {{",
-        "",
-        message.name,
-        indent = indent
-    )?;
+    writeln!(f, "{:indent$}message {} {{", "", message.name, indent = indent)?;
 
     for e in &message.enums {
         print_enum(e, indent + 2, f)?;

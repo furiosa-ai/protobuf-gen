@@ -75,10 +75,8 @@ impl Extract for ConversionGenerator {
                     use std::convert::TryInto;
 
                     let #proxy::#ident { #(#bindings)* } = other
-                        .ok_or_else(|| protobuf_gen::Error::EmptyObject(stringify!(#proxy::#ident).to_string()))?
-                        .try_into().map_err(|_| protobuf_gen::Error::TryFromError(
-                            stringify!(#proxy::#ident).to_string(),
-                        ))?;
+                        .ok_or_else(|| protobuf_gen::Error::new_empty_object(stringify!(#proxy::#ident)))?
+                        .try_into().map_err(|e| protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e))?;
 
                     Ok(Self {
                         #(#assignments)*
@@ -178,11 +176,7 @@ impl Extract for ConversionGenerator {
                 Fields::Unnamed(_) => quote!{
                     #ident::#variant(inner) => #proxy::#ident {
                         inner: Some(#proxy::#inner_mod::Inner::#variant(
-                            inner.try_into().map_err(|_| {
-                                protobuf_gen::Error::TryFromError(
-                                    stringify!(#proxy::#ident).to_string(),
-                                )
-                            })?
+                            inner.try_into().map_err(|e| protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e))?
                         )),
                     },
                 },
@@ -222,11 +216,7 @@ impl Extract for ConversionGenerator {
             .map(|v| {
                 let variant = &v.ident;
                 quote!(#proxy::#inner_mod::Inner::#variant(inner) =>
-                    inner.try_into().map_err(|_| {
-                        protobuf_gen::Error::TryFromError(
-                            stringify!(#proxy::#ident).to_string(),
-                        )
-                    }),
+                    inner.try_into().map_err(|e| protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e)),
                 )
             })
             .collect::<Vec<_>>();
@@ -239,7 +229,7 @@ impl Extract for ConversionGenerator {
                 fn try_from(#proxy::#ident { inner }: #proxy::#ident) -> ::std::result::Result<Self, Self::Error> {
                     use std::convert::TryInto;
 
-                    match inner.ok_or_else(|| protobuf_gen::Error::EmptyObject(stringify!(#ident).to_string()))? {
+                    match inner.ok_or_else(|| protobuf_gen::Error::new_empty_object(stringify!(#ident).to_string()))? {
                         #(#cases)*
                     }
                 }
@@ -252,13 +242,9 @@ impl Extract for ConversionGenerator {
                     use std::convert::TryInto;
 
                     let #proxy::#ident { inner } = other
-                        .ok_or_else(|| protobuf_gen::Error::EmptyObject(stringify!(#proxy::#ident).to_string()))?
-                        .try_into().map_err(|_| {
-                            protobuf_gen::Error::TryFromError(
-                                stringify!(#proxy::#ident).to_string(),
-                            )
-                        })?;
-                    match inner.ok_or_else(|| protobuf_gen::Error::EmptyObject(stringify!(#proxy::#ident).to_string()))? {
+                        .ok_or_else(|| protobuf_gen::Error::new_empty_object(stringify!(#proxy::#ident)))?
+                        .try_into().map_err(|e| protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e))?;
+                    match inner.ok_or_else(|| protobuf_gen::Error::new_empty_object(stringify!(#proxy::#ident)))? {
                         #(#cases)*
                     }
                 }
@@ -292,10 +278,8 @@ impl Extract for ConversionGenerator {
                 type Error = protobuf_gen::Error;
 
                 fn try_into(self) -> ::std::result::Result<i32, Self::Error> {
-                    let proxy: #proxy::#ident = self.try_into().map_err(|_| {
-                        protobuf_gen::Error::TryFromError(
-                            stringify!(#proxy::#ident).to_string(),
-                        )
+                    let proxy: #proxy::#ident = self.try_into().map_err(|e| {
+                        protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e)
                     })?;
 
                     Ok(proxy.into())
@@ -324,11 +308,9 @@ impl Extract for ConversionGenerator {
 
                 fn try_from(n: i32) -> ::std::result::Result<Self, Self::Error> {
                     let proxy = #proxy::#ident::from_i32(n)
-                        .ok_or_else(|| protobuf_gen::Error::InvalidIdent(stringify!(#proxy::#ident).to_string()))?;
-                    proxy.try_into().map_err(|_| {
-                        protobuf_gen::Error::TryFromError(
-                            stringify!(#proxy::#ident).to_string(),
-                        )
+                        .ok_or_else(|| protobuf_gen::Error::new_invalid_ident(stringify!(#proxy::#ident)))?;
+                    proxy.try_into().map_err(|e| {
+                        protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e)
                     })
                 }
             }
@@ -342,10 +324,8 @@ impl Extract for ConversionGenerator {
                     use std::convert::TryInto;
                     use prost::Message;
 
-                    let proxy: #proxy::#ident = self.try_into().map_err(|_| {
-                        protobuf_gen::Error::TryFromError(
-                            stringify!(#proxy::#ident).to_string(),
-                        )
+                    let proxy: #proxy::#ident = self.try_into().map_err(|e| {
+                        protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e)
                     })?;
                     let proxy: i32 = proxy.into();
                     let mut buffer = Vec::with_capacity(proxy.encoded_len());
@@ -360,11 +340,9 @@ impl Extract for ConversionGenerator {
                     let mut buffer = Vec::new();
                     r.read_to_end(&mut buffer)?;
                     let proxy = #proxy::#ident::from_i32(prost::Message::decode(&buffer[..])?)
-                        .ok_or_else(|| protobuf_gen::Error::InvalidIdent(stringify!(#ident).to_string()))?;
-                    proxy.try_into().map_err(|_| {
-                        protobuf_gen::Error::TryFromError(
-                            stringify!(#proxy::#ident).to_string(),
-                        )
+                        .ok_or_else(|| protobuf_gen::Error::new_invalid_ident(stringify!(#ident).to_string()))?;
+                    proxy.try_into().map_err(|e| {
+                        protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e)
                     })
                 }
             }
@@ -387,10 +365,8 @@ impl ConversionGenerator {
                     use std::convert::TryInto;
                     use prost::Message;
 
-                    let proxy: #proxy::#ident = self.try_into().map_err(|_| {
-                        protobuf_gen::Error::TryFromError(
-                            stringify!(#proxy::#ident).to_string(),
-                        )
+                    let proxy: #proxy::#ident = self.try_into().map_err(|e| {
+                        protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e)
                     })?;
 
                     let mut buffer = Vec::with_capacity(proxy.encoded_len());
@@ -405,10 +381,8 @@ impl ConversionGenerator {
                     let mut buffer = Vec::new();
                     r.read_to_end(&mut buffer)?;
                     let proxy: #proxy::#ident = prost::Message::decode(&buffer[..])?;
-                    proxy.try_into().map_err(|_| {
-                        protobuf_gen::Error::TryFromError(
-                            stringify!(#proxy::#ident).to_string(),
-                        )
+                    proxy.try_into().map_err(|e| {
+                        protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e)
                     })
                 }
             }
@@ -442,26 +416,20 @@ impl ConversionGenerator {
                     {
                         return quote!(
                             #field : #field.into_iter().map(|x|
-                                x.try_into().map_err(|_|
-                                    protobuf_gen::Error::TryFromError(
-                                        stringify!(#field).to_string(),
-                                    )
+                                x.try_into().map_err(|e|
+                                    protobuf_gen::Error::new_try_from_error(stringify!(#field).to_string(), e)
                                 )
                             ).collect::<::std::result::Result<_, protobuf_gen::Error>>()?,
                         );
                     } else if type_ident == "HashMap" {
                         return quote!(
                             #field : #field.into_iter().map(|(k, v)| {
-                                let k = k.try_into().map_err(|_|
-                                    protobuf_gen::Error::TryFromError(
-                                        stringify!(#field).to_string(),
-                                    )
+                                let k = k.try_into().map_err(|e|
+                                    protobuf_gen::Error::new_try_from_error(stringify!(#field).to_string(), e)
                                 )?;
 
-                                let v = v.try_into().map_err(|_|
-                                    protobuf_gen::Error::TryFromError(
-                                        stringify!(#field).to_string(),
-                                    )
+                                let v = v.try_into().map_err(|e|
+                                    protobuf_gen::Error::new_try_from_error(stringify!(#field).to_string(), e)
                                 )?;
 
                                 Ok((k, v))
@@ -470,11 +438,7 @@ impl ConversionGenerator {
                     }
                 }
                 quote!(
-                    #field : #field.try_into().map_err(|_|
-                        protobuf_gen::Error::TryFromError(
-                            stringify!(#field).to_string(),
-                        )
-                    )?,
+                    #field : #field.try_into().map_err(|e| protobuf_gen::Error::new_try_from_error(stringify!(#field).to_string(), e))?,
                 )
             })
             .collect();
