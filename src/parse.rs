@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 use std::ops::{Deref, DerefMut};
 use std::path::Path;
 
@@ -16,7 +16,7 @@ use crate::extract::{self, Extract};
 
 struct RequiredImportsCollector<'a> {
     context: &'a Context,
-    imports: HashSet<String>,
+    imports: BTreeSet<String>,
 }
 
 impl<'a> Extract for RequiredImportsCollector<'a> {
@@ -55,7 +55,7 @@ impl<'a, 'ast> Visit<'ast> for RequiredImportsCollector<'a> {
     }
 }
 
-pub fn collect_required_imports<'a>(context: &'a Context, file: &File) -> HashSet<String> {
+pub fn collect_required_imports<'a>(context: &'a Context, file: &File) -> BTreeSet<String> {
     let mut collector = RequiredImportsCollector { context, imports: Default::default() };
     extract::extract_from_file(&mut collector, file);
     collector.imports
