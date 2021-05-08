@@ -172,6 +172,7 @@ impl Default for Context {
                 ("u32".to_string(), FieldType::Uint32),
                 ("u64".to_string(), FieldType::Uint64),
                 ("usize".to_string(), FieldType::Uint64),
+                ("isize".to_string(), FieldType::int64),
                 ("i32".to_string(), FieldType::Sint32),
                 ("i64".to_string(), FieldType::Sint64),
                 ("String".to_string(), FieldType::String_),
