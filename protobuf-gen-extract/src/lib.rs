@@ -44,21 +44,14 @@ pub fn extract_nested_message<T: Extract + ?Sized>(
 
 pub fn extract_message<T: Extract + ?Sized>(e: &mut T, item_struct: &ItemStruct) {
     fn filter_field(field: &syn::Field) -> bool {
-        if let syn::Visibility::Public(_) = field.vis {
-            true
-        } else {
-            syn_util::contains_attribute(&field.attrs, &["protobuf_gen", "expose"])
-        }
+        !syn_util::contains_attribute(&field.attrs, &["protobuf_gen", "skip"])
+            && (matches!(field.vis, syn::Visibility::Public(_))
+                || syn_util::contains_attribute(&field.attrs, &["protobuf_gen", "expose"]))
     }
 
     if let syn::Fields::Named(fields_named) = &item_struct.fields {
         let fields_named = FieldsNamed {
-            named: fields_named
-                .named
-                .iter()
-                .cloned()
-                .filter(filter_field)
-                .collect(),
+            named: fields_named.named.iter().cloned().filter(filter_field).collect(),
             ..fields_named.clone()
         };
         if !fields_named.named.is_empty() {
@@ -74,11 +67,8 @@ pub fn extract_message<T: Extract + ?Sized>(e: &mut T, item_struct: &ItemStruct)
 }
 
 fn path_to_string(path: &Path) -> String {
-    let segments: Vec<String> = path
-        .segments
-        .iter()
-        .map(|segment| segment.ident.to_string())
-        .collect();
+    let segments: Vec<String> =
+        path.segments.iter().map(|segment| segment.ident.to_string()).collect();
     segments.join("::")
 }
 
@@ -98,9 +88,7 @@ fn collect_items(file: &File) -> Vec<&Item> {
                 attrs.iter().any(|attr| {
                     if let Meta::List(MetaList { path, nested, .. }) = attr.parse_meta().unwrap() {
                         path_to_string(&path) == "derive"
-                            && nested
-                                .iter()
-                                .any(|nested_meta| is_protobuf_gen(nested_meta))
+                            && nested.iter().any(|nested_meta| is_protobuf_gen(nested_meta))
                     } else {
                         false
                     }
