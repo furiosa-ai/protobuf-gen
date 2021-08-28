@@ -33,6 +33,7 @@ pub struct Config {
     pub proxy_target_dir: Option<PathBuf>,
     pub sources: HashMap<String, Vec<PathBuf>>,
     pub type_replacement: HashMap<String, String>,
+    btree_map_targets: Vec<String>,
 }
 
 #[derive(Error, Debug)]
@@ -53,6 +54,7 @@ impl Config {
             proxy_target_dir: proxy_target_dir.map(|p| p.into()),
             sources: HashMap::new(),
             type_replacement: HashMap::new(),
+            btree_map_targets: Vec::new(),
         }
     }
 
@@ -94,6 +96,10 @@ impl Config {
         Ok(context)
     }
 
+    pub fn btree_map(&mut self, path: &str) {
+        self.btree_map_targets.push(path.to_owned())
+    }
+
     pub fn generate(&self) -> result::Result<(), ConfigError> {
         let mut in_files = Vec::new();
         let mut context = self.build_context()?;
@@ -123,6 +129,7 @@ impl Config {
             let mut config = prost_build::Config::new();
             config.type_attribute(".", "#[allow(clippy::large_enum_variant)]");
             config.out_dir(proxy_target_dir);
+            config.btree_map(&self.btree_map_targets);
             config.compile_protos(&in_files, &[PathBuf::from(&self.proto_target_dir)])?;
         }
         Ok(())
