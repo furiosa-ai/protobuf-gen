@@ -59,7 +59,7 @@ impl Extract for ConversionGenerator {
                 .into_iter()
                 .map(|f| {
                     let ident = &f.ident;
-                    quote!(#ident: Default::default())
+                    quote!(#ident: Default::default(),)
                 })
                 .collect()
         } else {
