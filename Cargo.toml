@@ -1,14 +1,14 @@
 [package]
 name = "protobuf-gen"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["Boncheol Gu <boncheol.gu@gmail.com>"]
 edition = "2018"
 
 [dependencies]
 heck = "0.3"
 log = "0.4"
-prost = "0.7.0"
-prost-build = "0.7.0"
+prost = "0.9.0"
+prost-build = "0.9.0"
 protobuf-gen-derive = { path = "protobuf-gen-derive" }
 protobuf-gen-extract = { path = "protobuf-gen-extract" }
 syn = { version = "1.0", features = ["visit"] }
