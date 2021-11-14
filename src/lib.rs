@@ -118,6 +118,7 @@ impl Config {
 
             let (mut file, file_path) = self.create_proto_file(package)?;
             write!(file, "{}", SchemaPrinter(&schema_file))?;
+            file.sync_all()?;
 
             in_files.push(file_path);
         }
