@@ -123,6 +123,11 @@ impl Config {
             in_files.push(file_path);
         }
 
+        // HACK: Puts the current thread to sleep for a momemnt between writing and reading
+        // `*.proto`. There appears to be a delay in Amazon EC2 until all in-memory data reaches
+        // the filesystem. See <https://github.com/furiosa-ai/npu-tools/issues/2766>.
+        std::thread::sleep(std::time::Duration::from_secs(1));
+
         // generate Rust bindings for protobuf
         if let Some(ref proxy_target_dir) = self.proxy_target_dir {
             fs::create_dir_all(proxy_target_dir)?;
