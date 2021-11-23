@@ -120,12 +120,27 @@ impl Config {
             write!(file, "{}", SchemaPrinter(&schema_file))?;
             file.sync_all()?;
 
+            // https://man7.org/linux/man-pages/man2/fdatasync.2.html
+            //
+            // > Calling fsync() does not necessarily ensure that the entry in the directory
+            // > containing the file has also reached disk. For that an explicit fsync() on a file
+            // > descriptor for the directory is also needed.
+            if let Some(dir) = file_path.parent() {
+                File::open(dir)?.sync_all()?;
+            }
+
             in_files.push(file_path);
         }
 
         // HACK: Puts the current thread to sleep for a momemnt between writing and reading
         // `*.proto`. There appears to be a delay in Amazon EC2 until all in-memory data reaches
         // the filesystem. See <https://github.com/furiosa-ai/npu-tools/issues/2766>.
+        //
+        // https://man7.org/linux/man-pages/man2/fdatasync.2.html
+        //
+        // > The fsync() implementations in older kernels and lesser used filesystems do not know
+        // > how to flush disk caches. In these cases disk caches need to be disabled using
+        // > hdparm(8) or sdparm(8) to guarantee safe operation.
         std::thread::sleep(std::time::Duration::from_secs(1));
 
         // generate Rust bindings for protobuf
