@@ -10,6 +10,7 @@ mod types;
 use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
+use std::option_env;
 use std::path::PathBuf;
 use std::result;
 
@@ -132,16 +133,26 @@ impl Config {
             in_files.push(file_path);
         }
 
-        // HACK: Puts the current thread to sleep for a momemnt between writing and reading
-        // `*.proto`. There appears to be a delay in Amazon EC2 until all in-memory data reaches
-        // the filesystem. See <https://github.com/furiosa-ai/npu-tools/issues/2766>.
+        // http://localhost:8080/pipeline-syntax/globals#env, assuming a Jenkins controller is
+        // running on localhost:8080.
         //
-        // https://man7.org/linux/man-pages/man2/fdatasync.2.html
-        //
-        // > The fsync() implementations in older kernels and lesser used filesystems do not know
-        // > how to flush disk caches. In these cases disk caches need to be disabled using
-        // > hdparm(8) or sdparm(8) to guarantee safe operation.
-        std::thread::sleep(std::time::Duration::from_secs(1));
+        // > A set of environment variables are made available to all Jenkins projects, including
+        // > Pipelines. The following is a general list of variable names that are available.
+        // > ...
+        // > CI: Statically set to the string "true" to indicate a "continuous integration"
+        // > execution environment.
+        if option_env!("CI").filter(|&value| value == "true").is_some() {
+            // HACK: Puts the current thread to sleep for a momemnt between writing and reading
+            // `*.proto`. There appears to be a delay in Amazon EC2 until all in-memory data
+            // reaches the filesystem. See <https://github.com/furiosa-ai/npu-tools/issues/2766>.
+            //
+            // https://man7.org/linux/man-pages/man2/fdatasync.2.html
+            //
+            // > The fsync() implementations in older kernels and lesser used filesystems do not
+            // > know how to flush disk caches. In these cases disk caches need to be disabled
+            // > using hdparm(8) or sdparm(8) to guarantee safe operation.
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
 
         // generate Rust bindings for protobuf
         if let Some(ref proxy_target_dir) = self.proxy_target_dir {
