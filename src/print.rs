@@ -45,7 +45,7 @@ fn print_field(field: &Field, indent: usize, f: &mut fmt::Formatter<'_>) -> fmt:
             FieldType::BytesCow => "bytes",
             FieldType::Message(_) => "message",
             FieldType::Map(_, _) => "map",
-            FieldType::MessageOrEnum(s) => &s,
+            FieldType::MessageOrEnum(s) => s,
         }
     }
 
