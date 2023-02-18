@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 use std::ops::{Deref, DerefMut};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::types::{
     Enumerator, Field, FieldType, FileDescriptor, Frequency, Message, OneOf, Syntax,
@@ -332,6 +332,13 @@ impl Default for SchemaFile {
 }
 
 impl SchemaFile {
+    pub fn new(imports: Vec<PathBuf>) -> Self {
+        Self(FileDescriptor {
+            import_paths: imports,
+            ..Default::default()
+        })
+    }
+
     pub fn merge(&mut self, other: &mut SchemaFile) {
         self.0.import_paths.append(&mut other.0.import_paths);
         self.0.import_paths.sort();

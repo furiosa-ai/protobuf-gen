@@ -35,6 +35,7 @@ pub struct Config {
     pub sources: HashMap<String, Vec<PathBuf>>,
     pub type_replacement: HashMap<String, String>,
     btree_map_targets: Vec<String>,
+    additional_imports: HashMap<String, Vec<PathBuf>>,
 }
 
 #[derive(Error, Debug)]
@@ -56,6 +57,7 @@ impl Config {
             sources: HashMap::new(),
             type_replacement: HashMap::new(),
             btree_map_targets: Vec::new(),
+            additional_imports: HashMap::new(),
         }
     }
 
@@ -104,6 +106,13 @@ impl Config {
         self.btree_map_targets.push(path.to_owned())
     }
 
+    pub fn add_import(&mut self, package: impl Into<String>, path: impl Into<PathBuf>) {
+        self.additional_imports
+            .entry(package.into())
+            .or_default()
+            .push(path.into())
+    }
+
     pub fn generate(&self) -> result::Result<(), ConfigError> {
         let mut in_files = Vec::new();
         let mut context = self.build_context()?;
@@ -112,7 +121,12 @@ impl Config {
         for (package, sources) in &self.sources {
             context.current_package = package.clone();
 
-            let mut schema_file = SchemaFile::default();
+            let mut schema_file = if let Some(imports) = self.additional_imports.get(package) {
+                SchemaFile::new(imports.clone())
+            } else {
+                SchemaFile::default()
+            };
+
             schema_file.package = package.clone();
             for source in sources {
                 debug!("processing {} in {}", source.display(), package);
