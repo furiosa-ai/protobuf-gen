@@ -20,11 +20,7 @@ struct RequiredImportsCollector<'a> {
 }
 
 impl<'a> Extract for RequiredImportsCollector<'a> {
-    fn extract_message_with_fields_named<'ast>(
-        &mut self,
-        _: &ItemStruct,
-        fields_named: &'ast FieldsNamed,
-    ) {
+    fn extract_message_with_fields_named(&mut self, _: &ItemStruct, fields_named: &FieldsNamed) {
         self.visit_fields_named(fields_named);
     }
     fn extract_nested_message_with_fields_named(
@@ -59,7 +55,7 @@ impl<'a, 'ast> Visit<'ast> for RequiredImportsCollector<'a> {
     }
 }
 
-pub fn collect_required_imports<'a>(context: &'a Context, file: &File) -> BTreeSet<String> {
+pub fn collect_required_imports(context: &Context, file: &File) -> BTreeSet<String> {
     let mut collector = RequiredImportsCollector {
         context,
         imports: Default::default(),
@@ -200,7 +196,7 @@ fn type_frequency(typ: &Type) -> Frequency {
     match typ {
         Type::Array(_) => Frequency::Repeated,
         Type::Path(type_path) => {
-            let ident = type_path_ident(&type_path);
+            let ident = type_path_ident(type_path);
             if ident == "Vec" || ident == "HashSet" {
                 Frequency::Repeated
             } else {
@@ -237,7 +233,7 @@ impl<'a> SchemaFileBuilder<'a> {
         match typ {
             Type::Array(type_array) => self.type_field_type(&type_array.elem),
             Type::Path(type_path) => {
-                let ident = type_path_ident(&type_path);
+                let ident = type_path_ident(type_path);
                 if let Some(ty) = self
                     .context
                     .type_replacement
@@ -245,7 +241,7 @@ impl<'a> SchemaFileBuilder<'a> {
                 {
                     ty.clone()
                 } else if ident == "Vec" || ident == "HashSet" {
-                    self.type_field_type(generic_type_of(&type_path).unwrap())
+                    self.type_field_type(generic_type_of(type_path).unwrap())
                 } else if let Some(package) = self
                     .context
                     .item_dictionary
@@ -291,12 +287,12 @@ impl<'a> SchemaFileBuilder<'a> {
     }
 }
 
-pub fn build_schema_file<'a>(context: &'a Context, file: &File) -> SchemaFile {
+pub fn build_schema_file(context: &Context, file: &File) -> SchemaFile {
     let file_descriptor = FileDescriptor {
         syntax: Syntax::Proto3,
-        import_paths: collect_required_imports(&context, &file)
+        import_paths: collect_required_imports(context, file)
             .into_iter()
-            .map(|s| Path::new(&s.replace(".", "/")).with_extension("proto"))
+            .map(|s| Path::new(&s.replace('.', "/")).with_extension("proto"))
             .collect(),
         ..Default::default()
     };

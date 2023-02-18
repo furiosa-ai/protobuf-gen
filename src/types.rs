@@ -1,15 +1,10 @@
 use std::path::PathBuf;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub enum Syntax {
     Proto2,
+    #[default]
     Proto3,
-}
-
-impl Default for Syntax {
-    fn default() -> Syntax {
-        Syntax::Proto3
-    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
