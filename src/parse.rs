@@ -40,7 +40,11 @@ impl<'a> Extract for RequiredImportsCollector<'a> {
 impl<'a, 'ast> Visit<'ast> for RequiredImportsCollector<'a> {
     fn visit_type_path(&mut self, type_path: &TypePath) {
         let ident = type_path_ident(type_path);
-        if !self.context.type_replacement.contains_key(ident.to_string().as_str()) {
+        if !self
+            .context
+            .type_replacement
+            .contains_key(ident.to_string().as_str())
+        {
             if let Some(package) = self
                 .context
                 .item_dictionary
@@ -56,7 +60,10 @@ impl<'a, 'ast> Visit<'ast> for RequiredImportsCollector<'a> {
 }
 
 pub fn collect_required_imports<'a>(context: &'a Context, file: &File) -> BTreeSet<String> {
-    let mut collector = RequiredImportsCollector { context, imports: Default::default() };
+    let mut collector = RequiredImportsCollector {
+        context,
+        imports: Default::default(),
+    };
     extract::extract_from_file(&mut collector, file);
     collector.imports
 }
@@ -99,14 +106,21 @@ impl<'a> Extract for SchemaFileBuilder<'a> {
             .collect();
         self.add_nested_message(
             &item_enum.ident,
-            Message { name: format!("{}Inner", &variant.ident), fields, ..Message::default() },
+            Message {
+                name: format!("{}Inner", &variant.ident),
+                fields,
+                ..Message::default()
+            },
         );
     }
 
     fn extract_nested_message_with_fields_unit(&mut self, item_enum: &ItemEnum, variant: &Variant) {
         self.add_nested_message(
             &item_enum.ident,
-            Message { name: format!("{}Inner", &variant.ident), ..Message::default() },
+            Message {
+                name: format!("{}Inner", &variant.ident),
+                ..Message::default()
+            },
         );
     }
 
@@ -138,7 +152,11 @@ impl<'a> Extract for SchemaFileBuilder<'a> {
 
         self.add_message(Message {
             name: item_enum.ident.to_string(),
-            oneofs: vec![OneOf { name: "inner".to_string(), fields, ..OneOf::default() }],
+            oneofs: vec![OneOf {
+                name: "inner".to_string(),
+                fields,
+                ..OneOf::default()
+            }],
             ..Message::default()
         });
     }
@@ -165,15 +183,13 @@ pub(crate) fn type_path_ident(type_path: &TypePath) -> &Ident {
 pub(crate) fn generic_type_of(type_path: &TypePath) -> Option<&Type> {
     type_path.path.segments.last().and_then(|x| {
         if let PathArguments::AngleBracketed(g) = &x.arguments {
-            g.args.first().and_then(
-                |x| {
-                    if let GenericArgument::Type(g) = x {
-                        Some(g)
-                    } else {
-                        None
-                    }
-                },
-            )
+            g.args.first().and_then(|x| {
+                if let GenericArgument::Type(g) = x {
+                    Some(g)
+                } else {
+                    None
+                }
+            })
         } else {
             None
         }
@@ -222,7 +238,11 @@ impl<'a> SchemaFileBuilder<'a> {
             Type::Array(type_array) => self.type_field_type(&type_array.elem),
             Type::Path(type_path) => {
                 let ident = type_path_ident(&type_path);
-                if let Some(ty) = self.context.type_replacement.get(ident.to_string().as_str()) {
+                if let Some(ty) = self
+                    .context
+                    .type_replacement
+                    .get(ident.to_string().as_str())
+                {
                     ty.clone()
                 } else if ident == "Vec" || ident == "HashSet" {
                     self.type_field_type(generic_type_of(&type_path).unwrap())
@@ -281,7 +301,10 @@ pub fn build_schema_file<'a>(context: &'a Context, file: &File) -> SchemaFile {
         ..Default::default()
     };
 
-    let mut builder = SchemaFileBuilder { context, file_descriptor };
+    let mut builder = SchemaFileBuilder {
+        context,
+        file_descriptor,
+    };
     extract::extract_from_file(&mut builder, file);
 
     SchemaFile(builder.file_descriptor)
@@ -305,13 +328,17 @@ impl DerefMut for SchemaFile {
 
 impl Default for SchemaFile {
     fn default() -> Self {
-        Self(FileDescriptor { syntax: Syntax::Proto3, ..Default::default() })
+        Self(FileDescriptor {
+            syntax: Syntax::Proto3,
+            ..Default::default()
+        })
     }
 }
 
 impl SchemaFile {
     pub fn merge(&mut self, other: &mut SchemaFile) {
         self.0.import_paths.append(&mut other.0.import_paths);
+        self.0.import_paths.sort();
         self.0.import_paths.dedup();
         self.0.enums.append(&mut other.0.enums);
         self.0.messages.append(&mut other.0.messages);

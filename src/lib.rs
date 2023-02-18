@@ -64,7 +64,10 @@ impl Config {
     }
 
     pub fn add_source<P: Into<PathBuf>, S: Into<String>>(&mut self, file: P, package: S) {
-        self.sources.entry(package.into()).or_default().push(file.into());
+        self.sources
+            .entry(package.into())
+            .or_default()
+            .push(file.into());
     }
 
     fn create_proto_file<P: AsRef<str>>(&self, package: P) -> io::Result<(File, PathBuf)> {
@@ -178,10 +181,12 @@ impl ItemDictionary {
         for item in items {
             match item {
                 syn::Item::Struct(inner) => {
-                    self.package_map.insert(inner.ident.to_string(), package.to_string());
+                    self.package_map
+                        .insert(inner.ident.to_string(), package.to_string());
                 }
                 syn::Item::Enum(inner) => {
-                    self.package_map.insert(inner.ident.to_string(), package.to_string());
+                    self.package_map
+                        .insert(inner.ident.to_string(), package.to_string());
                 }
                 _ => {}
             }
@@ -226,6 +231,7 @@ impl Default for Context {
 
 impl Context {
     pub fn add_type_replacement(&mut self, old: String, new: String) {
-        self.type_replacement.insert(old, FieldType::MessageOrEnum(new));
+        self.type_replacement
+            .insert(old, FieldType::MessageOrEnum(new));
     }
 }
