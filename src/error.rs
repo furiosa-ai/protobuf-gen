@@ -16,7 +16,10 @@ pub enum Error {
     #[error(transparent)]
     ProstDecodeError(#[from] DecodeError),
     #[error("failed to convert `{0}`")]
-    TryFromError(String, #[source] Box<dyn ::std::error::Error + Sync + Send + 'static>),
+    TryFromError(
+        String,
+        #[source] Box<dyn ::std::error::Error + Sync + Send + 'static>,
+    ),
 }
 
 impl Error {
