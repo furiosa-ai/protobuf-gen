@@ -14,6 +14,7 @@ use std::option_env;
 use std::path::PathBuf;
 use std::result;
 
+use syn::{Ident, ItemEnum, ItemStruct};
 use thiserror::Error;
 
 use crate::parse::SchemaFile;
@@ -187,20 +188,19 @@ impl Config {
 
 #[derive(Debug, Default)]
 pub struct ItemDictionary {
-    package_map: HashMap<String, String>,
+    package_map: HashMap<String, Vec<String>>,
 }
 
 impl ItemDictionary {
     pub fn collect(&mut self, items: &[syn::Item], package: &str) {
         for item in items {
             match item {
-                syn::Item::Struct(inner) => {
+                syn::Item::Struct(ItemStruct { ident, .. })
+                | syn::Item::Enum(ItemEnum { ident, .. }) => {
                     self.package_map
-                        .insert(inner.ident.to_string(), package.to_string());
-                }
-                syn::Item::Enum(inner) => {
-                    self.package_map
-                        .insert(inner.ident.to_string(), package.to_string());
+                        .entry(ident.to_string())
+                        .or_default()
+                        .push(package.to_string());
                 }
                 _ => {}
             }
@@ -247,5 +247,20 @@ impl Context {
     pub fn add_type_replacement(&mut self, old: String, new: String) {
         self.type_replacement
             .insert(old, FieldType::MessageOrEnum(new));
+    }
+
+    pub fn get_package(&self, ident: &Ident) -> Option<&String> {
+        let packages = self.item_dictionary.package_map.get(&ident.to_string())?;
+        if packages.contains(&self.current_package) {
+            return None;
+        }
+
+        fn length_of_common_prefix(a: &str, b: &str) -> usize {
+            a.chars().zip(b.chars()).take_while(|(a, b)| a == b).count()
+        }
+
+        packages
+            .iter()
+            .max_by_key(|package| length_of_common_prefix(package, &self.current_package))
     }
 }
