@@ -41,13 +41,7 @@ impl<'a, 'ast> Visit<'ast> for RequiredImportsCollector<'a> {
             .type_replacement
             .contains_key(ident.to_string().as_str())
         {
-            if let Some(package) = self
-                .context
-                .item_dictionary
-                .package_map
-                .get(&ident.to_string())
-                .filter(|&package| package != &self.context.current_package)
-            {
+            if let Some(package) = self.context.get_package(ident) {
                 self.imports.insert(package.to_string());
             }
         }
@@ -242,14 +236,8 @@ impl<'a> SchemaFileBuilder<'a> {
                     ty.clone()
                 } else if ident == "Vec" || ident == "HashSet" {
                     self.type_field_type(generic_type_of(type_path).unwrap())
-                } else if let Some(package) = self
-                    .context
-                    .item_dictionary
-                    .package_map
-                    .get(&ident.to_string())
-                    .filter(|&package| package != &self.context.current_package)
-                {
-                    FieldType::MessageOrEnum(package.clone() + "." + &ident.to_string())
+                } else if let Some(package) = self.context.get_package(ident) {
+                    FieldType::MessageOrEnum(format!("{package}.{ident}"))
                 } else {
                     FieldType::MessageOrEnum(ident.to_string())
                 }
