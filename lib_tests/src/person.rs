@@ -4,7 +4,7 @@ use protobuf_gen::ProtobufGen;
 
 use crate::city::City;
 
-#[derive(Debug, Clone, ProtobufGen, Arbitrary, PartialEq)]
+#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq)]
 #[protobuf_gen(proxy_mod = "crate::proxy")]
 pub struct Dummy {
     pub id: u32,
@@ -17,23 +17,24 @@ pub struct Designer {
     pub name: String,
 }
 
-#[derive(Debug, Clone, ProtobufGen, Arbitrary, PartialEq)]
+#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq)]
 #[protobuf_gen(proxy_mod = "crate::proxy")]
 pub enum Job {
+    #[default]
     None,
-    Programmer { skill: String, grade: u8 },
-    Designer { designer: Designer },
+    Programmer {
+        skill: String,
+        grade: u8,
+    },
+    Designer {
+        designer: Designer,
+    },
 }
 
-impl Default for Job {
-    fn default() -> Self {
-        Job::None
-    }
-}
-
-#[derive(Debug, Clone, ProtobufGen, Arbitrary, PartialEq)]
+#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq)]
 #[protobuf_gen(proxy_mod = "crate::proxy")]
 pub enum AreaCode {
+    #[default]
     Seoul,
     Seongnam,
     Jinhae,
@@ -54,7 +55,7 @@ impl From<Vec<u8>> for NumberBuffer {
     }
 }
 
-#[derive(Debug, Clone, ProtobufGen, Arbitrary, PartialEq)]
+#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq)]
 #[protobuf_gen(proxy_mod = "crate::proxy")]
 pub struct Person {
     pub(crate) _inner: i32,

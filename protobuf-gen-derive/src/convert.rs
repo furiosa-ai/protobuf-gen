@@ -74,14 +74,17 @@ impl Extract for ConversionGenerator {
                 fn try_from(other: Option<#proxy::#ident>) -> ::std::result::Result<Self, Self::Error> {
                     use std::convert::TryInto;
 
-                    let #proxy::#ident { #(#bindings)* } = other
-                        .ok_or_else(|| protobuf_gen::Error::new_empty_object(stringify!(#proxy::#ident)))?
-                        .try_into().map_err(|e| protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e))?;
-
-                    Ok(Self {
-                        #(#assignments)*
-                        #(#private_fields)*
-                    })
+                    if let Some(inner) = other {
+                        let #proxy::#ident { #(#bindings)* } = inner
+                            .try_into().map_err(|e| protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e))?;
+                        Ok(Self {
+                            #(#assignments)*
+                            #(#private_fields)*
+                        })
+                    }
+                    else {
+                        Ok(Self::default())
+                    }
                 }
             }
 
@@ -229,8 +232,13 @@ impl Extract for ConversionGenerator {
                 fn try_from(#proxy::#ident { inner }: #proxy::#ident) -> ::std::result::Result<Self, Self::Error> {
                     use std::convert::TryInto;
 
-                    match inner.ok_or_else(|| protobuf_gen::Error::new_empty_object(stringify!(#ident).to_string()))? {
-                        #(#cases)*
+                    if let Some(inner) = inner {
+                        match inner {
+                            #(#cases)*
+                        }
+                    }
+                    else {
+                        Ok(Default::default())
                     }
                 }
             }
@@ -241,11 +249,15 @@ impl Extract for ConversionGenerator {
                 fn try_from(other: Option<#proxy::#ident>) -> ::std::result::Result<Self, Self::Error> {
                     use std::convert::TryInto;
 
-                    let #proxy::#ident { inner } = other
-                        .ok_or_else(|| protobuf_gen::Error::new_empty_object(stringify!(#proxy::#ident)))?
-                        .try_into().map_err(|e| protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e))?;
-                    match inner.ok_or_else(|| protobuf_gen::Error::new_empty_object(stringify!(#proxy::#ident)))? {
-                        #(#cases)*
+                    if let Some(inner) = other {
+                        let #proxy::#ident { inner } = inner
+                            .try_into().map_err(|e| protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e))?;
+                        match inner.ok_or_else(|| protobuf_gen::Error::new_empty_object(stringify!(#proxy::#ident)))? {
+                            #(#cases)*
+                        }
+                    }
+                    else {
+                        Ok(Default::default())
                     }
                 }
             }

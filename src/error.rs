@@ -11,9 +11,9 @@ pub enum Error {
     InvalidIdent(String),
     #[error(transparent)]
     IoError(#[from] IoError),
-    #[error(transparent)]
+    #[error("prost encode error: {0:?}")]
     ProstEncodeError(#[from] EncodeError),
-    #[error(transparent)]
+    #[error("prost decode error: {0:?}")]
     ProstDecodeError(#[from] DecodeError),
     #[error("failed to convert `{0}`")]
     TryFromError(

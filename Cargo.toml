@@ -7,8 +7,8 @@ edition = "2018"
 [dependencies]
 heck = "0.3"
 log = "0.4"
-prost = "0.9.0"
-prost-build = "0.9.0"
+prost = "0.11"
+prost-build = "0.11"
 protobuf-gen-derive = { path = "protobuf-gen-derive" }
 protobuf-gen-extract = { path = "protobuf-gen-extract" }
 syn = { version = "1.0", features = ["visit"] }
