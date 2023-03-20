@@ -24,7 +24,7 @@ pub enum Job {
     None,
     Programmer {
         skill: String,
-        grade: u8,
+        grade: Option<u8>,
     },
     Designer {
         designer: Designer,

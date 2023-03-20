@@ -193,6 +193,8 @@ fn type_frequency(typ: &Type) -> Frequency {
             let ident = type_path_ident(type_path);
             if ident == "Vec" || ident == "HashSet" {
                 Frequency::Repeated
+            } else if ident == "Option" {
+                Frequency::Optional
             } else {
                 Frequency::Required
             }
@@ -234,7 +236,7 @@ impl<'a> SchemaFileBuilder<'a> {
                     .get(ident.to_string().as_str())
                 {
                     ty.clone()
-                } else if ident == "Vec" || ident == "HashSet" {
+                } else if ident == "Vec" || ident == "HashSet" || ident == "Option" {
                     self.type_field_type(generic_type_of(type_path).unwrap())
                 } else if let Some(package) = self.context.get_package(ident) {
                     FieldType::MessageOrEnum(format!("{package}.{ident}"))
