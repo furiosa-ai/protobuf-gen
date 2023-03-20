@@ -19,6 +19,7 @@ fn print_field(field: &Field, indent: usize, f: &mut fmt::Formatter<'_>) -> fmt:
     fn frequency_to_string(freq: &Frequency) -> &str {
         match freq {
             Frequency::Repeated => "repeated ",
+            Frequency::Optional => "optional ",
             _ => "",
         }
     }

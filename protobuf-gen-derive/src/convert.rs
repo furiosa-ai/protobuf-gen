@@ -448,6 +448,15 @@ impl ConversionGenerator {
                             }).collect::<::std::result::Result<_, protobuf_gen::Error>>()?,
                         );
                     }
+                    else if type_ident == "Option" {
+                        return quote!(
+                            #field : #field.map(|v| {
+                                v.try_into().map_err(|e|
+                                    protobuf_gen::Error::new_try_from_error(stringify!(#field).to_string(), e)
+                                )
+                            }).transpose()?
+                        );
+                    }
                 }
                 quote!(
                     #field : #field.try_into().map_err(|e| protobuf_gen::Error::new_try_from_error(stringify!(#field).to_string(), e))?,
