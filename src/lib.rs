@@ -130,7 +130,7 @@ impl Config {
 
             schema_file.package = package.clone();
             for source in sources {
-                debug!("processing {} in {}", source.display(), package);
+                eprintln!("processing {} in {}", source.display(), package);
                 let syn_file: syn::File = syn::parse_str(&fs::read_to_string(source)?)?;
                 schema_file.merge(&mut parse::build_schema_file(&context, &syn_file));
             }
