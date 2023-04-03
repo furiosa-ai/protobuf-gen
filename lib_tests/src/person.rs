@@ -58,12 +58,13 @@ impl From<Vec<u8>> for NumberBuffer {
 #[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq)]
 #[protobuf_gen(proxy_mod = "crate::proxy")]
 pub struct Person {
-    pub(crate) _inner: i32,
+    #[protobuf_gen(skip)]
+    pub _inner: i32,
     pub id: u8,
     #[protobuf_gen(substitute = "bytes")]
     pub number: NumberBuffer,
     pub hobbies: Vec<u32>,
     pub job: Job,
-    pub city: City,
+    pub city: Option<City>,
     pub area_code: AreaCode,
 }

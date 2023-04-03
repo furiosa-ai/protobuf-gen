@@ -454,7 +454,7 @@ impl ConversionGenerator {
                                 v.try_into().map_err(|e|
                                     protobuf_gen::Error::new_try_from_error(stringify!(#field).to_string(), e)
                                 )
-                            }).transpose()?
+                            }).transpose()?,
                         );
                     }
                 }
