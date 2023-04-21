@@ -22,7 +22,7 @@ impl Extract for ConversionGenerator {
         let ident = &item_struct.ident;
         let proxy = &self.proxy_mod;
 
-        let (ref bindings, ref assignments) = self.generate_assignments(fields_named);
+        let (ref bindings, ref assignments) = self.generate_assignments(fields_named, true);
 
         self.token_stream.extend(quote! {
             impl ::std::convert::TryInto<Option<#proxy::#ident>> for #ident {
@@ -51,6 +51,8 @@ impl Extract for ConversionGenerator {
                 }
             }
         });
+
+        let (ref bindings, ref assignments) = self.generate_assignments(fields_named, false);
 
         let private_fields = if let Fields::Named(FieldsNamed { named, .. }) = &item_struct.fields {
             let total_fields: HashSet<_> = named.iter().collect();
@@ -117,7 +119,7 @@ impl Extract for ConversionGenerator {
         let variant = &variant.ident;
         let variant_inner: Ident = syn::parse_str(&format!("{}Inner", variant)).unwrap();
 
-        let (bindings, assignments) = self.generate_assignments(fields_named);
+        let (bindings, assignments) = self.generate_assignments(fields_named, false);
 
         self.token_stream.extend(quote! {
             impl ::std::convert::TryFrom<#proxy::#inner_mod::#variant_inner> for #ident {
@@ -167,7 +169,7 @@ impl Extract for ConversionGenerator {
                     },
                 },
                 Fields::Named(fields_named) => {
-                    let (bindings, assignments) = self.generate_assignments(fields_named);
+                    let (bindings, assignments) = self.generate_assignments(fields_named, true);
                     quote!{
                         #ident::#variant { #(#bindings)* } => #proxy::#ident {
                             inner: Some(#proxy::#inner_mod::Inner::#variant(#proxy::#inner_mod::#variant_inner {
@@ -404,6 +406,7 @@ impl ConversionGenerator {
     fn generate_assignments(
         &self,
         fields_named: &FieldsNamed,
+        into_proxy: bool,
     ) -> (Vec<TokenStream>, Vec<TokenStream>) {
         let bindings = fields_named
             .named
@@ -419,6 +422,23 @@ impl ConversionGenerator {
             .iter()
             .map(|x| {
                 let field = x.ident.as_ref().unwrap();
+                if syn_util::contains_attribute(&x.attrs, &["protobuf_gen", "opaque"]) {
+                    return if into_proxy {
+                        quote!(
+                            #field : {
+                                let mut buffer = Vec::new();
+                                #field.to_protobuf(&mut buffer)?;
+                                buffer
+                            },
+                        )
+                    }
+                    else {
+                        quote!(
+                            #field : ProtobufGen::from_protobuf(&mut std::io::Cursor::new(#field))?,
+                        )
+                    };
+                }
+
                 if let Type::Path(type_path) = &x.ty {
                     let type_ident = &type_path.path.segments.last().unwrap().ident;
                     if type_ident == "Vec"

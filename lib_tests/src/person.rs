@@ -29,6 +29,10 @@ pub enum Job {
     Designer {
         designer: Designer,
     },
+    DesignerOpaque {
+        #[protobuf_gen(opaque)]
+        designer: Designer,
+    },
 }
 
 #[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq)]
@@ -57,6 +61,12 @@ impl From<Vec<u8>> for NumberBuffer {
 
 #[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq)]
 #[protobuf_gen(proxy_mod = "crate::proxy")]
+pub struct Car {
+    pub number: usize,
+}
+
+#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq)]
+#[protobuf_gen(proxy_mod = "crate::proxy")]
 pub struct Person {
     #[protobuf_gen(skip)]
     pub _inner: i32,
@@ -67,4 +77,6 @@ pub struct Person {
     pub job: Job,
     pub city: Option<City>,
     pub area_code: AreaCode,
+    #[protobuf_gen(opaque)]
+    pub car: Car,
 }
