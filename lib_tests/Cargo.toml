@@ -15,4 +15,5 @@ failure = "0.1"
 protobuf-gen = { path = ".." }
 
 [dev-dependencies]
+eyre = "0.6.8"
 proptest = "0.9"
