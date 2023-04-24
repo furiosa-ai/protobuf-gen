@@ -9,7 +9,7 @@ mod types;
 
 use std::collections::HashMap;
 use std::fs::{self, File};
-use std::io::{self, Read, Write};
+use std::io::{self, Write};
 use std::option_env;
 use std::path::PathBuf;
 use std::result;
@@ -20,14 +20,20 @@ use thiserror::Error;
 use crate::parse::SchemaFile;
 use crate::print::SchemaPrinter;
 use crate::types::FieldType;
+pub use bytes;
 pub use error::Error;
 pub use protobuf_gen_derive::*;
 
 pub trait ProtobufGen: Sized {
     type Error;
 
-    fn to_protobuf<W: Write>(self, w: &mut W) -> result::Result<(), Self::Error>;
-    fn from_protobuf<R: Read>(r: &mut R) -> result::Result<Self, Self::Error>;
+    fn to_protobuf<B: bytes::BufMut>(self, w: &mut B) -> result::Result<(), Self::Error>;
+    fn from_protobuf<B: bytes::Buf>(r: B) -> result::Result<Self, Self::Error>;
+    fn to_protobuf_length_delimited<B: bytes::BufMut>(
+        self,
+        w: &mut B,
+    ) -> result::Result<(), Self::Error>;
+    fn from_protobuf_length_delimited<B: bytes::Buf>(r: B) -> result::Result<Self, Self::Error>;
 }
 
 pub struct Config {
