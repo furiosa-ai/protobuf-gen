@@ -29,12 +29,7 @@ impl Extract for ConversionGenerator {
                 type Error = protobuf_gen::Error;
 
                 fn try_into(self) -> ::std::result::Result<Option<#proxy::#ident>, Self::Error> {
-                    use std::convert::TryInto;
-
-                    let #ident { #(#bindings)* .. } = self;
-                    Ok(Some(#proxy::#ident {
-                        #(#assignments)*
-                    }))
+                    Ok(Some(self.try_into()?))
                 }
             }
 
@@ -77,12 +72,7 @@ impl Extract for ConversionGenerator {
                     use std::convert::TryInto;
 
                     if let Some(inner) = other {
-                        let #proxy::#ident { #(#bindings)* } = inner
-                            .try_into().map_err(|e| protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e))?;
-                        Ok(Self {
-                            #(#assignments)*
-                            #(#private_fields)*
-                        })
+                        inner.try_into()
                     }
                     else {
                         Ok(Self::default())
@@ -208,9 +198,7 @@ impl Extract for ConversionGenerator {
                 fn try_into(self) -> ::std::result::Result<Option<#proxy::#ident>, Self::Error> {
                     use std::convert::TryInto;
 
-                    Ok(Some(match self {
-                        #(#cases)*
-                    }))
+                    Ok(Some(self.try_into()?))
                 }
             }
         });
