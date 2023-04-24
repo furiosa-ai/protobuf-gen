@@ -1,23 +1,24 @@
+use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
 
 use protobuf_gen::ProtobufGen;
 
 use crate::city::City;
 
-#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq)]
+#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq, Eq, Hash)]
 #[protobuf_gen(proxy_mod = "crate::proxy")]
 pub struct Dummy {
     pub id: u32,
 }
 
-#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq)]
+#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq, Eq, Hash)]
 #[protobuf_gen(proxy_mod = "crate::proxy")]
 pub struct Designer {
     pub id: i32,
     pub name: String,
 }
 
-#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq)]
+#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq, Eq, Hash)]
 #[protobuf_gen(proxy_mod = "crate::proxy")]
 pub enum Job {
     #[default]
@@ -35,7 +36,7 @@ pub enum Job {
     },
 }
 
-#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq)]
+#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq, Eq, Hash)]
 #[protobuf_gen(proxy_mod = "crate::proxy")]
 pub enum AreaCode {
     #[default]
@@ -44,7 +45,7 @@ pub enum AreaCode {
     Jinhae,
 }
 
-#[derive(Debug, Default, Clone, Arbitrary, PartialEq)]
+#[derive(Debug, Default, Clone, Arbitrary, PartialEq, Eq, Hash)]
 pub struct NumberBuffer(Vec<u8>);
 
 impl Into<Vec<u8>> for NumberBuffer {
@@ -59,13 +60,13 @@ impl From<Vec<u8>> for NumberBuffer {
     }
 }
 
-#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq)]
+#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq, Eq, Hash)]
 #[protobuf_gen(proxy_mod = "crate::proxy")]
 pub struct Car {
     pub number: usize,
 }
 
-#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq)]
+#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq, Eq, Hash)]
 #[protobuf_gen(proxy_mod = "crate::proxy")]
 pub struct Person {
     #[protobuf_gen(skip)]
@@ -79,4 +80,77 @@ pub struct Person {
     pub area_code: AreaCode,
     #[protobuf_gen(opaque)]
     pub car: Car,
+    #[protobuf_gen(opaque)]
+    pub cars: Vec<Car>,
+}
+
+#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq)]
+#[protobuf_gen(proxy_mod = "crate::proxy")]
+pub struct VecOfPerson {
+    pub vec: Vec<Person>,
+    #[protobuf_gen(opaque)]
+    pub opaque_vec: Vec<Person>,
+}
+
+#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq)]
+#[protobuf_gen(proxy_mod = "crate::proxy")]
+pub struct SetOfPerson {
+    pub set: HashSet<Person>,
+    #[protobuf_gen(opaque)]
+    pub opaque_set: HashSet<Person>,
+}
+
+#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq)]
+#[protobuf_gen(proxy_mod = "crate::proxy")]
+pub struct OptionOfPerson {
+    pub option: Option<Person>,
+    #[protobuf_gen(opaque)]
+    pub opaque_option: Option<Person>,
+}
+
+#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq)]
+#[protobuf_gen(proxy_mod = "crate::proxy")]
+pub struct MapOfPerson {
+    #[protobuf_gen(substitute = "map<string, Person>")]
+    pub map: HashMap<String, Person>,
+}
+
+#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq)]
+#[protobuf_gen(proxy_mod = "crate::proxy")]
+pub enum VariousPerson {
+    #[default]
+    None,
+    Person {
+        inner: Person,
+    },
+    VecOfPerson {
+        inner: Vec<Person>,
+    },
+    SetOfPerson {
+        inner: HashSet<Person>,
+    },
+    MapOfPerson {
+        #[protobuf_gen(substitute = "map<string, Person>")]
+        inner: HashMap<String, Person>,
+    },
+    OptionOfPerson {
+        inner: Option<Person>,
+    },
+    OpaqueVecOfPerson {
+        #[protobuf_gen(opaque)]
+        inner: Vec<Person>,
+    },
+    OpaqueSetOfPerson {
+        #[protobuf_gen(opaque)]
+        inner: HashSet<Person>,
+    },
+    OpaqueOptionOfPerson {
+        #[protobuf_gen(opaque)]
+        inner: Option<Person>,
+    },
+    OpaqueMapOfPersone {
+        // this is a W/A, opaque HashMap is not supported.
+        #[protobuf_gen(opaque)]
+        inner: MapOfPerson,
+    },
 }
