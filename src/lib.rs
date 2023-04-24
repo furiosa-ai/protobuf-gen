@@ -34,6 +34,22 @@ pub trait ProtobufGen: Sized {
         w: &mut B,
     ) -> result::Result<(), Self::Error>;
     fn from_protobuf_length_delimited<B: bytes::Buf>(r: B) -> result::Result<Self, Self::Error>;
+    fn to_protobuf_opaque<B: bytes::BufMut>(
+        xs: impl IntoIterator<Item = Self>,
+        w: &mut B,
+    ) -> result::Result<(), Self::Error> {
+        for x in xs {
+            x.to_protobuf_length_delimited(w)?;
+        }
+        Ok(())
+    }
+    fn from_protobuf_opaque<B: bytes::Buf>(mut r: B) -> result::Result<Vec<Self>, Self::Error> {
+        let mut xs = Vec::new();
+        while r.has_remaining() {
+            xs.push(Self::from_protobuf_length_delimited(&mut r)?);
+        }
+        Ok(xs)
+    }
 }
 
 pub struct Config {
