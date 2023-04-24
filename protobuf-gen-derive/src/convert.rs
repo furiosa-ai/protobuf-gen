@@ -322,7 +322,7 @@ impl Extract for ConversionGenerator {
             impl ProtobufGen for #ident {
                 type Error = protobuf_gen::Error;
 
-                fn to_protobuf<W: ::std::io::Write>(self, w: &mut W) -> ::std::result::Result<(), Self::Error> {
+                fn to_protobuf<B: protobuf_gen::bytes::BufMut>(self, buffer: &mut B) -> ::std::result::Result<(), Self::Error> {
                     use std::convert::TryInto;
                     use prost::Message;
 
@@ -330,18 +330,36 @@ impl Extract for ConversionGenerator {
                         protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e)
                     })?;
                     let proxy: i32 = proxy.into();
-                    let mut buffer = Vec::with_capacity(proxy.encoded_len());
-                    proxy.encode(&mut buffer)?;
-                    w.write_all(&buffer)?;
+                    proxy.encode(buffer)?;
                     Ok(())
                 }
 
-                fn from_protobuf<R: ::std::io::Read>(r: &mut R) -> ::std::result::Result<Self, Self::Error> {
+                fn from_protobuf<B: protobuf_gen::bytes::Buf>(buffer: B) -> ::std::result::Result<Self, Self::Error> {
                     use std::convert::TryInto;
 
-                    let mut buffer = Vec::new();
-                    r.read_to_end(&mut buffer)?;
-                    let proxy = #proxy::#ident::from_i32(prost::Message::decode(&buffer[..])?)
+                    let proxy = #proxy::#ident::from_i32(prost::Message::decode(buffer)?)
+                        .ok_or_else(|| protobuf_gen::Error::new_invalid_ident(stringify!(#ident).to_string()))?;
+                    proxy.try_into().map_err(|e| {
+                        protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e)
+                    })
+                }
+
+                fn to_protobuf_length_delimited<B: protobuf_gen::bytes::BufMut>(self, buffer: &mut B) -> ::std::result::Result<(), Self::Error> {
+                    use std::convert::TryInto;
+                    use prost::Message;
+
+                    let proxy: #proxy::#ident = self.try_into().map_err(|e| {
+                        protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e)
+                    })?;
+                    let proxy: i32 = proxy.into();
+                    proxy.encode_length_delimited(buffer)?;
+                    Ok(())
+                }
+
+                fn from_protobuf_length_delimited<B: protobuf_gen::bytes::Buf>(buffer: B) -> ::std::result::Result<Self, Self::Error> {
+                    use std::convert::TryInto;
+
+                    let proxy = #proxy::#ident::from_i32(prost::Message::decode_length_delimited(buffer)?)
                         .ok_or_else(|| protobuf_gen::Error::new_invalid_ident(stringify!(#ident).to_string()))?;
                     proxy.try_into().map_err(|e| {
                         protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e)
@@ -363,7 +381,7 @@ impl ConversionGenerator {
             impl ProtobufGen for #ident {
                 type Error = protobuf_gen::Error;
 
-                fn to_protobuf<W: ::std::io::Write>(self, w: &mut W) -> ::std::result::Result<(), Self::Error> {
+                fn to_protobuf<B: protobuf_gen::bytes::BufMut>(self, buffer: &mut B) -> ::std::result::Result<(), Self::Error> {
                     use std::convert::TryInto;
                     use prost::Message;
 
@@ -371,18 +389,35 @@ impl ConversionGenerator {
                         protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e)
                     })?;
 
-                    let mut buffer = Vec::with_capacity(proxy.encoded_len());
-                    proxy.encode(&mut buffer)?;
-                    w.write_all(&buffer)?;
+                    proxy.encode(buffer)?;
                     Ok(())
                 }
 
-                fn from_protobuf<R: ::std::io::Read>(r: &mut R) -> ::std::result::Result<Self, Self::Error> {
+                fn from_protobuf<B: protobuf_gen::bytes::Buf>(buffer: B) -> ::std::result::Result<Self, Self::Error> {
                     use std::convert::TryInto;
 
-                    let mut buffer = Vec::new();
-                    r.read_to_end(&mut buffer)?;
-                    let proxy: #proxy::#ident = prost::Message::decode(&buffer[..])?;
+                    let proxy: #proxy::#ident = prost::Message::decode(buffer)?;
+                    proxy.try_into().map_err(|e| {
+                        protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e)
+                    })
+                }
+
+                fn to_protobuf_length_delimited<B: protobuf_gen::bytes::BufMut>(self, buffer: &mut B) -> ::std::result::Result<(), Self::Error> {
+                    use std::convert::TryInto;
+                    use prost::Message;
+
+                    let proxy: #proxy::#ident = self.try_into().map_err(|e| {
+                        protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e)
+                    })?;
+
+                    proxy.encode_length_delimited(buffer)?;
+                    Ok(())
+                }
+
+                fn from_protobuf_length_delimited<B: protobuf_gen::bytes::Buf>(buffer: B) -> ::std::result::Result<Self, Self::Error> {
+                    use std::convert::TryInto;
+
+                    let proxy: #proxy::#ident = prost::Message::decode_length_delimited(buffer)?;
                     proxy.try_into().map_err(|e| {
                         protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e)
                     })
