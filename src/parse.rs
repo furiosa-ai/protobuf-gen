@@ -215,7 +215,7 @@ impl<'a> SchemaFileBuilder<'a> {
             .messages
             .iter_mut()
             .find(|m| parent == &m.name)
-            .unwrap_or_else(|| panic!("no parent message \"{}\" exists.", parent))
+            .unwrap_or_else(|| panic!("no parent message \"{parent}\" exists."))
             .messages
             .push(m);
     }
@@ -244,7 +244,7 @@ impl<'a> SchemaFileBuilder<'a> {
                     FieldType::MessageOrEnum(ident.to_string())
                 }
             }
-            _ => panic!("failed to parse: {:?}", typ),
+            _ => panic!("failed to parse: {typ:?}"),
         }
     }
 
