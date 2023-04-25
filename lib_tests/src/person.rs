@@ -68,6 +68,14 @@ pub struct Car {
 
 #[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq, Eq, Hash)]
 #[protobuf_gen(proxy_mod = "crate::proxy")]
+pub enum CarTag {
+    #[default]
+    None,
+    Number,
+}
+
+#[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq, Eq, Hash)]
+#[protobuf_gen(proxy_mod = "crate::proxy")]
 pub struct Person {
     #[protobuf_gen(skip)]
     pub _inner: i32,
@@ -82,6 +90,7 @@ pub struct Person {
     pub car: Car,
     #[protobuf_gen(opaque)]
     pub cars: Vec<Car>,
+    pub car_tag: CarTag,
 }
 
 #[derive(Debug, Default, Clone, ProtobufGen, Arbitrary, PartialEq)]

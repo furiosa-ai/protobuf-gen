@@ -267,7 +267,7 @@ impl<'a> SchemaFileBuilder<'a> {
         if syn_util::contains_attribute(&field.attrs, &["protobuf_gen", "opaque"]) {
             return Field {
                 name: field.ident.as_ref().unwrap().to_string(),
-                frequency: Frequency::Required,
+                frequency: type_frequency(&field.ty),
                 typ: FieldType::BytesCow,
                 number: number as i32,
                 default: None,
