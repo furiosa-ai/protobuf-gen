@@ -25,21 +25,19 @@ impl Extract for ConversionGenerator {
         let (ref bindings, ref assignments) = self.generate_assignments(fields_named, true);
 
         self.token_stream.extend(quote! {
-            impl ::std::convert::TryInto<Option<#proxy::#ident>> for #ident {
+            impl TryFrom<#ident> for Option<#proxy::#ident> {
                 type Error = protobuf_gen::Error;
 
-                fn try_into(self) -> ::std::result::Result<Option<#proxy::#ident>, Self::Error> {
-                    Ok(Some(self.try_into()?))
+                fn try_from(value: #ident) -> ::std::result::Result<Option<#proxy::#ident>, Self::Error> {
+                    Ok(Some(value.try_into()?))
                 }
             }
 
-            impl ::std::convert::TryInto<#proxy::#ident> for #ident {
+            impl TryFrom<#ident> for #proxy::#ident {
                 type Error = protobuf_gen::Error;
 
-                fn try_into(self) -> ::std::result::Result<#proxy::#ident, Self::Error> {
-                    use std::convert::TryInto;
-
-                    let #ident { #(#bindings)* .. } = self;
+                fn try_from(value: #ident) -> ::std::result::Result<#proxy::#ident, Self::Error> {
+                    let #ident { #(#bindings)* .. } = value;
                     Ok(#proxy::#ident {
                         #(#assignments)*
                     })
@@ -75,12 +73,10 @@ impl Extract for ConversionGenerator {
         let private_fields = &private_fields;
 
         self.token_stream.extend(quote! {
-            impl ::std::convert::TryFrom<Option<#proxy::#ident>> for #ident {
+            impl TryFrom<Option<#proxy::#ident>> for #ident {
                 type Error = protobuf_gen::Error;
 
                 fn try_from(other: Option<#proxy::#ident>) -> ::std::result::Result<Self, Self::Error> {
-                    use std::convert::TryInto;
-
                     if let Some(inner) = other {
                         inner.try_into()
                     }
@@ -90,12 +86,10 @@ impl Extract for ConversionGenerator {
                 }
             }
 
-            impl ::std::convert::TryFrom<#proxy::#ident> for #ident {
+            impl TryFrom<#proxy::#ident> for #ident {
                 type Error = protobuf_gen::Error;
 
                 fn try_from(#proxy::#ident { #(#bindings)* }: #proxy::#ident) -> ::std::result::Result<Self, Self::Error> {
-                    use std::convert::TryInto;
-
                     Ok(Self {
                         #(#assignments)*
                         #(#private_fields)*
@@ -130,12 +124,10 @@ impl Extract for ConversionGenerator {
         let (bindings, assignments) = self.generate_assignments(fields_named, false);
 
         self.token_stream.extend(quote! {
-            impl ::std::convert::TryFrom<#proxy::#inner_mod::#variant_inner> for #ident {
+            impl TryFrom<#proxy::#inner_mod::#variant_inner> for #ident {
                 type Error = protobuf_gen::Error;
 
                 fn try_from(#proxy::#inner_mod::#variant_inner { #(#bindings)* }: #proxy::#inner_mod::#variant_inner) -> ::std::result::Result<Self, Self::Error> {
-                    use std::convert::TryInto;
-
                     Ok(#ident::#variant {
                         #(#assignments)*
                     })
@@ -152,7 +144,7 @@ impl Extract for ConversionGenerator {
         let variant_inner: Ident = syn::parse_str(&format!("{}Inner", variant)).unwrap();
 
         self.token_stream.extend(quote! {
-            impl ::std::convert::TryFrom<#proxy::#inner_mod::#variant_inner> for #ident {
+            impl TryFrom<#proxy::#inner_mod::#variant_inner> for #ident {
                 type Error = protobuf_gen::Error;
 
                 fn try_from(_: #proxy::#inner_mod::#variant_inner) -> ::std::result::Result<Self, Self::Error> {
@@ -198,25 +190,21 @@ impl Extract for ConversionGenerator {
         let cases = &cases;
 
         self.token_stream.extend(quote! {
-            impl ::std::convert::TryInto<#proxy::#ident> for #ident {
+            impl TryFrom<#ident> for #proxy::#ident {
                 type Error = protobuf_gen::Error;
 
-                fn try_into(self) -> ::std::result::Result<#proxy::#ident, Self::Error> {
-                    use std::convert::TryInto;
-
-                    Ok(match self {
+                fn try_from(value: #ident) -> ::std::result::Result<#proxy::#ident, Self::Error> {
+                    Ok(match value {
                         #(#cases)*
                     })
                 }
             }
 
-            impl ::std::convert::TryInto<Option<#proxy::#ident>> for #ident {
+            impl TryFrom<#ident> for Option<#proxy::#ident> {
                 type Error = protobuf_gen::Error;
 
-                fn try_into(self) -> ::std::result::Result<Option<#proxy::#ident>, Self::Error> {
-                    use std::convert::TryInto;
-
-                    Ok(Some(self.try_into()?))
+                fn try_from(value: #ident) -> ::std::result::Result<Option<#proxy::#ident>, Self::Error> {
+                    Ok(Some(value.try_into()?))
                 }
             }
 
@@ -244,37 +232,31 @@ impl Extract for ConversionGenerator {
         let cases = &cases;
 
         self.token_stream.extend(quote! {
-            impl ::std::convert::TryFrom<#proxy::#ident> for #ident {
+            impl TryFrom<#proxy::#ident> for #ident {
                 type Error = protobuf_gen::Error;
 
                 fn try_from(#proxy::#ident { inner }: #proxy::#ident) -> ::std::result::Result<Self, Self::Error> {
-                    use std::convert::TryInto;
-
                     if let Some(inner) = inner {
                         match inner {
                             #(#cases)*
                         }
-                    }
-                    else {
+                    } else {
                         Ok(Default::default())
                     }
                 }
             }
 
-            impl ::std::convert::TryFrom<Option<#proxy::#ident>> for #ident {
+            impl TryFrom<Option<#proxy::#ident>> for #ident {
                 type Error = protobuf_gen::Error;
 
                 fn try_from(other: Option<#proxy::#ident>) -> ::std::result::Result<Self, Self::Error> {
-                    use std::convert::TryInto;
-
                     if let Some(inner) = other {
                         let #proxy::#ident { inner } = inner
                             .try_into().map_err(|e| protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e))?;
                         match inner.ok_or_else(|| protobuf_gen::Error::new_empty_object(stringify!(#proxy::#ident)))? {
                             #(#cases)*
                         }
-                    }
-                    else {
+                    } else {
                         Ok(Default::default())
                     }
                 }
@@ -302,21 +284,21 @@ impl Extract for ConversionGenerator {
         });
 
         self.token_stream.extend(quote! {
-            impl ::std::convert::TryInto<#proxy::#ident> for #ident {
+            impl TryFrom<#ident> for #proxy::#ident {
                 type Error = protobuf_gen::Error;
 
-                fn try_into(self) -> ::std::result::Result<#proxy::#ident, Self::Error> {
-                    Ok(match self {
+                fn try_from(value: #ident) -> ::std::result::Result<#proxy::#ident, Self::Error> {
+                    Ok(match value {
                         #(#cases)*
                     })
                 }
             }
 
-            impl ::std::convert::TryInto<i32> for #ident {
+            impl TryFrom<#ident> for i32 {
                 type Error = protobuf_gen::Error;
 
-                fn try_into(self) -> ::std::result::Result<i32, Self::Error> {
-                    let proxy: #proxy::#ident = self.try_into().map_err(|e| {
+                fn try_from(value: #ident) -> ::std::result::Result<i32, Self::Error> {
+                    let proxy: #proxy::#ident = value.try_into().map_err(|e| {
                         protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e)
                     })?;
 
@@ -341,7 +323,7 @@ impl Extract for ConversionGenerator {
         });
 
         self.token_stream.extend(quote! {
-            impl ::std::convert::TryFrom<#proxy::#ident> for #ident {
+            impl TryFrom<#proxy::#ident> for #ident {
                 type Error = protobuf_gen::Error;
 
                 fn try_from(other: #proxy::#ident) -> ::std::result::Result<Self, Self::Error> {
@@ -351,7 +333,7 @@ impl Extract for ConversionGenerator {
                 }
             }
 
-            impl ::std::convert::TryFrom<i32> for #ident {
+            impl TryFrom<i32> for #ident {
                 type Error = protobuf_gen::Error;
 
                 fn try_from(n: i32) -> ::std::result::Result<Self, Self::Error> {
@@ -377,7 +359,6 @@ impl Extract for ConversionGenerator {
                 type Error = protobuf_gen::Error;
 
                 fn to_protobuf<B: protobuf_gen::bytes::BufMut>(self, buffer: &mut B) -> ::std::result::Result<(), Self::Error> {
-                    use std::convert::TryInto;
                     use prost::Message;
 
                     let proxy: #proxy::#ident = self.try_into().map_err(|e| {
@@ -389,8 +370,6 @@ impl Extract for ConversionGenerator {
                 }
 
                 fn from_protobuf<B: protobuf_gen::bytes::Buf>(buffer: B) -> ::std::result::Result<Self, Self::Error> {
-                    use std::convert::TryInto;
-
                     let proxy = #proxy::#ident::from_i32(prost::Message::decode(buffer)?)
                         .ok_or_else(|| protobuf_gen::Error::new_invalid_ident(stringify!(#ident).to_string()))?;
                     proxy.try_into().map_err(|e| {
@@ -399,7 +378,6 @@ impl Extract for ConversionGenerator {
                 }
 
                 fn to_protobuf_length_delimited<B: protobuf_gen::bytes::BufMut>(self, buffer: &mut B) -> ::std::result::Result<(), Self::Error> {
-                    use std::convert::TryInto;
                     use prost::Message;
 
                     let proxy: #proxy::#ident = self.try_into().map_err(|e| {
@@ -411,8 +389,6 @@ impl Extract for ConversionGenerator {
                 }
 
                 fn from_protobuf_length_delimited<B: protobuf_gen::bytes::Buf>(buffer: B) -> ::std::result::Result<Self, Self::Error> {
-                    use std::convert::TryInto;
-
                     let proxy = #proxy::#ident::from_i32(prost::Message::decode_length_delimited(buffer)?)
                         .ok_or_else(|| protobuf_gen::Error::new_invalid_ident(stringify!(#ident).to_string()))?;
                     proxy.try_into().map_err(|e| {
@@ -436,7 +412,6 @@ impl ConversionGenerator {
                 type Error = protobuf_gen::Error;
 
                 fn to_protobuf<B: protobuf_gen::bytes::BufMut>(self, buffer: &mut B) -> ::std::result::Result<(), Self::Error> {
-                    use std::convert::TryInto;
                     use prost::Message;
 
                     let proxy: #proxy::#ident = self.try_into().map_err(|e| {
@@ -448,8 +423,6 @@ impl ConversionGenerator {
                 }
 
                 fn from_protobuf<B: protobuf_gen::bytes::Buf>(buffer: B) -> ::std::result::Result<Self, Self::Error> {
-                    use std::convert::TryInto;
-
                     let proxy: #proxy::#ident = prost::Message::decode(buffer)?;
                     proxy.try_into().map_err(|e| {
                         protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e)
@@ -457,7 +430,6 @@ impl ConversionGenerator {
                 }
 
                 fn to_protobuf_length_delimited<B: protobuf_gen::bytes::BufMut>(self, buffer: &mut B) -> ::std::result::Result<(), Self::Error> {
-                    use std::convert::TryInto;
                     use prost::Message;
 
                     let proxy: #proxy::#ident = self.try_into().map_err(|e| {
@@ -469,8 +441,6 @@ impl ConversionGenerator {
                 }
 
                 fn from_protobuf_length_delimited<B: protobuf_gen::bytes::Buf>(buffer: B) -> ::std::result::Result<Self, Self::Error> {
-                    use std::convert::TryInto;
-
                     let proxy: #proxy::#ident = prost::Message::decode_length_delimited(buffer)?;
                     proxy.try_into().map_err(|e| {
                         protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e)
