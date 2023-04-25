@@ -84,8 +84,12 @@ impl Config {
         }
     }
 
-    pub fn replace_type(&mut self, old: String, new: String) {
-        self.type_replacement.insert(old, new);
+    pub fn replace_type(&mut self, old: impl Into<String>, new: impl Into<String>) {
+        self.type_replacement.insert(old.into(), new.into());
+    }
+
+    pub fn opaque_type(&mut self, typ: impl Into<String>) {
+        self.type_replacement.insert(typ.into(), "bytes".into());
     }
 
     pub fn add_source<P: Into<PathBuf>, S: Into<String>>(&mut self, file: P, package: S) {
