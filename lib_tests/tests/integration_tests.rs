@@ -22,6 +22,7 @@ fn test_encode_decode_person() {
         area_code: AreaCode::Seongnam,
         car: Car { number: 1213 },
         cars: vec![Car { number: 3 }, Car { number: 13 }, Car { number: 12 }],
+        car_tag: CarTag::Number,
     };
 
     do_test_encode_decode_person(person).unwrap();

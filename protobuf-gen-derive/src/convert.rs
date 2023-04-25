@@ -45,6 +45,16 @@ impl Extract for ConversionGenerator {
                     })
                 }
             }
+
+            impl TryFrom<#ident> for Vec<u8> {
+                type Error = protobuf_gen::Error;
+
+                fn try_from(value: #ident) -> ::std::result::Result<Self, Self::Error> {
+                    let mut buffer = Vec::new();
+                    value.to_protobuf(&mut buffer)?;
+                    Ok(buffer)
+                }
+            }
         });
 
         let (ref bindings, ref assignments) = self.generate_assignments(fields_named, false);
@@ -90,6 +100,14 @@ impl Extract for ConversionGenerator {
                         #(#assignments)*
                         #(#private_fields)*
                     })
+                }
+            }
+
+            impl TryFrom<Vec<u8>> for #ident {
+                type Error = protobuf_gen::Error;
+
+                fn try_from(value: Vec<u8>) -> ::std::result::Result<Self, Self::Error> {
+                    Self::from_protobuf(value.as_slice())
                 }
             }
         });
@@ -201,6 +219,16 @@ impl Extract for ConversionGenerator {
                     Ok(Some(self.try_into()?))
                 }
             }
+
+            impl TryFrom<#ident> for Vec<u8> {
+                type Error = protobuf_gen::Error;
+
+                fn try_from(value: #ident) -> ::std::result::Result<Self, Self::Error> {
+                    let mut buffer = Vec::new();
+                    value.to_protobuf(&mut buffer)?;
+                    Ok(buffer)
+                }
+            }
         });
 
         let cases = item_enum
@@ -251,6 +279,14 @@ impl Extract for ConversionGenerator {
                     }
                 }
             }
+
+            impl TryFrom<Vec<u8>> for #ident {
+                type Error = protobuf_gen::Error;
+
+                fn try_from(value: Vec<u8>) -> ::std::result::Result<Self, Self::Error> {
+                    Self::from_protobuf(value.as_slice())
+                }
+            }
         });
 
         self.add_derive_protobuf_gen(ident);
@@ -287,6 +323,16 @@ impl Extract for ConversionGenerator {
                     Ok(proxy.into())
                 }
             }
+
+            impl TryFrom<#ident> for Vec<u8> {
+                type Error = protobuf_gen::Error;
+
+                fn try_from(value: #ident) -> ::std::result::Result<Self, Self::Error> {
+                    let mut buffer = Vec::new();
+                    value.to_protobuf(&mut buffer)?;
+                    Ok(buffer)
+                }
+            }
         });
 
         let cases = item_enum.variants.iter().map(|v| {
@@ -314,6 +360,14 @@ impl Extract for ConversionGenerator {
                     proxy.try_into().map_err(|e| {
                         protobuf_gen::Error::new_try_from_error(stringify!(#proxy::#ident), e)
                     })
+                }
+            }
+
+            impl TryFrom<Vec<u8>> for #ident {
+                type Error = protobuf_gen::Error;
+
+                fn try_from(value: Vec<u8>) -> ::std::result::Result<Self, Self::Error> {
+                    Self::from_protobuf(value.as_slice())
                 }
             }
         });
@@ -445,7 +499,6 @@ impl ConversionGenerator {
             .iter()
             .map(|x| {
                 let field = x.ident.as_ref().unwrap();
-                let is_opaque = syn_util::contains_attribute(&x.attrs, &["protobuf_gen", "opaque"]);
                 if let Type::Path(type_path) = &x.ty {
                     let type_ident = &type_path.path.segments.last().unwrap().ident;
                     if type_ident == "Vec"
@@ -453,23 +506,6 @@ impl ConversionGenerator {
                         || type_ident == "IndexMap"
                         || type_ident == "IndexSet"
                     {
-                        if is_opaque {
-                            return if into_proxy {
-                                quote!(
-                                    #field : {
-                                        let mut buffer = Vec::new();
-                                        ProtobufGen::to_protobuf_opaque(#field, &mut buffer)?;
-                                        buffer
-                                    },
-                                )
-                            }
-                            else {
-                                quote!(
-                                    #field : ProtobufGen::from_protobuf_opaque(&mut std::io::Cursor::new(#field))?.into_iter().collect(),
-                                )
-                            };
-                        }
-
                         return quote!(
                             #field : #field.into_iter().map(|x|
                                 x.try_into().map_err(|e|
@@ -493,33 +529,6 @@ impl ConversionGenerator {
                         );
                     }
                     else if type_ident == "Option" {
-                        if is_opaque {
-                            return if into_proxy {
-                                quote!(
-                                    #field : {
-                                        let mut buffer = Vec::new();
-                                        if let Some(v) = #field {
-                                            ProtobufGen::to_protobuf(v, &mut buffer)?;
-                                        }
-                                        buffer
-                                    },
-                                )
-                            }
-                            else {
-                                quote!(
-                                    #field : {
-                                        let buffer = #field;
-                                        if buffer.is_empty() {
-                                            None
-                                        }
-                                        else {
-                                            Some(ProtobufGen::from_protobuf(&mut std::io::Cursor::new(buffer))?)
-                                        }
-                                    }
-                                )
-                            };
-                        }
-
                         return quote!(
                             #field : #field.map(|v| {
                                 v.try_into().map_err(|e|
@@ -530,7 +539,7 @@ impl ConversionGenerator {
                     }
                 }
 
-                if is_opaque {
+                if syn_util::contains_attribute(&x.attrs, &["protobuf_gen", "opaque"]) {
                     return if into_proxy {
                         quote!(
                             #field : {
