@@ -86,9 +86,7 @@ pub struct Person {
     pub job: Job,
     pub city: Option<City>,
     pub area_code: AreaCode,
-    #[protobuf_gen(opaque)]
     pub car: Car,
-    #[protobuf_gen(opaque)]
     pub cars: Vec<Car>,
     pub car_tag: CarTag,
 }
